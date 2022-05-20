@@ -1,6 +1,6 @@
 #' @importFrom mclust Mclust mclustBIC
 
-bmcd <- function(distances, p, G, bmds_iter, bmds_burn, bmcd_burn, bmcd_iter, labelswitch_iter) {
+bmcd <- function(distances, p, G, bmds_iter, bmds_burn, bmcd_iter, bmcd_burn, labelswitch_iter) {
   n <- nrow(distances)
   m <- n*(n-1) / 2
 
@@ -31,6 +31,6 @@ bmcd <- function(distances, p, G, bmds_iter, bmds_burn, bmcd_burn, bmcd_iter, la
 
 
   # Run MCMC ----------------------------------------------------------------
-  bmcdMCMC(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, labelswitch_iter)
+  out <- bmcdMCMC(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_burn, labelswitch_iter)
 
 }

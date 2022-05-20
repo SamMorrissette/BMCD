@@ -1,9 +1,11 @@
 #' @importFrom gtools rdirichlet
 #' @importFrom LaplacesDemon rinvwishart
 #' @importFrom mvtnorm rmvnorm
+#' @importFrom RcppHungarian HungarianSolver
+#' @importFrom combinat permn
 
 
-bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, labelswitch_iter) {
+bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_burn, labelswitch_iter) {
 
   # Unpack list
   X_list = mcmc_list$X_list
@@ -15,6 +17,7 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, labels
   z_list <- mcmc_list$z_list
   class_list <- mcmc_list$class_list
 
+  # Initialize various MCMC variables (proposal variances, acceptance rates, transformation parameters, label-switching parameters)
   tri_ind <- lower.tri(matrix(data=NA, nrow = n, ncol = n))
   X_star = X_list[[1]] # For transformation of X
   SSR_init <- sum((as.matrix(dist(X_list[[1]])) - distances)^2)
@@ -25,8 +28,15 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, labels
   accept_x <- 0
   accept_sigma <- 0
 
-  for (t in 2:bmcd_iter) {
+  init_theta <-rep(list(list()), G)
+  init_s <- init_theta
+  qwe <- c()
 
+  for (t in 2:bmcd_iter) {
+    # Iteration printing  -----------------------------------------------------
+    if (t %% 100 == 0) {
+      print(t)
+    }
 
     # Generating X using random walk M-H algorithm ----------------------------
 
@@ -165,7 +175,155 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, labels
 
     # Relabeling procedure ----------------------------------------------------
 
+    if (t == labelswitch_iter) {
+      for (comp in 1:G) {
+
+        init_theta[[comp]][[1]] <- (1 / labelswitch_iter) * sum(eps_list[1:labelswitch_iter, comp])
+        init_theta[[comp]][[2]] <- (1 / labelswitch_iter) * Reduce(`+`,
+                                                          rapply(mu_list[1:labelswitch_iter],
+                                                                 classes = 'matrix', how = 'list',
+                                                                 f = function(x) x[, comp, drop = FALSE]))
+        init_theta[[comp]][[3]] <- (1 / labelswitch_iter) *
+          Reduce(`+`, lapply(T_list[1:labelswitch_iter], function(x) x[,,comp]))
 
 
+        init_s[[comp]][[1]] <- (1 / labelswitch_iter) * sum((eps_list[1:labelswitch_iter,comp] - init_theta[[comp]][[1]])^2)
+
+        mu_temp <- rapply(mu_list[1:labelswitch_iter],
+                          classes = 'matrix', how = 'list',
+                          f = function(x) x[, comp, drop = FALSE])
+
+        init_s[[comp]][[2]] <- (1 / labelswitch_iter) *
+          Reduce(`+`,
+                 lapply(mu_temp,
+                        function(x) (x[, 1] - init_theta[[comp]][[2]])^2))
+
+        T_temp <- lapply(T_list[1:labelswitch_iter], function(x) x[,,comp])
+
+        init_s[[comp]][[3]] <- (1 / labelswitch_iter) *
+          Reduce(`+`, lapply(T_temp, function(x) (x - init_theta[[comp]][[3]])^2))
+      }
+
+      theta_perms <- permn(init_theta)
+      perm_labels <- permn(1:G)
+
+    } else if (t > labelswitch_iter) {
+      r <- t - labelswitch_iter
+
+      ## Testing
+      eps_theta <- rep(NA, G)
+
+      for (comp in 1:G) {
+        eps_theta[comp] <- init_theta[[comp]][[1]]
+
+      }
+      eps_list[labelswitch_iter+r,]
+      test_mat <- matrix(NA, nrow = G,  ncol = G)
+      for (comp in 1:G) {
+        test_mat[comp, ] <- (eps_list[labelswitch_iter+r, comp] - eps_theta)^2 / init_s[[comp]][[1]]
+      }
+
+      ## mu
+      mu_theta <- matrix(NA, nrow = p, ncol = G)
+
+      for (comp in 1:G) {
+        mu_theta[,comp] <- init_theta[[comp]][[2]]
+      }
+
+      test_mat2 <- matrix(NA, nrow = G,  ncol = G)
+      for (comp in 1:G) {
+        test_mat2[comp, ] <- colSums(
+          sweep((mu_list[[labelswitch_iter+r]][,comp] - mu_theta)^2, 1, init_s[[comp]][[2]], FUN = '/'))
+      }
+
+
+      ## T
+      T_theta <- replicate(G, matrix(NA, nrow = p, ncol = p))
+      for (comp in 1:G) {
+        T_theta[,,comp] <- init_theta[[comp]][[3]]
+      }
+
+      test_mat3 <- matrix(NA, nrow = G, ncol = G)
+      for (comp in 1:G) {
+        test_mat3[comp, ] <- apply(T_theta, 3, function(x) {
+          sum((T_list[[labelswitch_iter+r]][,,comp] - x)^2 / init_s[[comp]][[3]])
+        }, simplify = TRUE)
+      }
+
+
+      ## Assignment problem from here
+      assignment_solution <- HungarianSolver(test_mat+test_mat2+test_mat3)
+      new_ind <- assignment_solution$pairs[,2]
+
+      if(sum(new_ind != c(1:G)) != 0) qwe <- c(qwe, t)
+      eps_list[labelswitch_iter+r,] <- eps_list[labelswitch_iter+r, new_ind]
+      mu_list[[labelswitch_iter+r]] <- mu_list[[labelswitch_iter+r]][ , new_ind]
+      T_list[[labelswitch_iter+r]] <- T_list[[labelswitch_iter+r]][ ,, new_ind]
+
+      ## Step 2
+      old_theta <- init_theta
+      for (comp in 1:G) {
+        init_theta[[comp]][[1]] <- (((labelswitch_iter + r - 1) / (labelswitch_iter + r)) * init_theta[[comp]][[1]]) +
+          ((1 / (labelswitch_iter + r)) * eps_list[labelswitch_iter+r, comp])
+        init_theta[[comp]][[2]] <- (((labelswitch_iter + r - 1) / (labelswitch_iter + r)) * init_theta[[comp]][[2]]) +
+          ((1 / (labelswitch_iter + r)) * mu_list[[labelswitch_iter+r]][, comp])
+        init_theta[[comp]][[3]] <- (((labelswitch_iter + r - 1) / (labelswitch_iter + r)) * init_theta[[comp]][[3]]) +
+          ((1 / (labelswitch_iter + r)) * T_list[[labelswitch_iter+r]][,, comp])
+
+        init_s[[comp]][[1]] <- (((labelswitch_iter + r - 1) / (labelswitch_iter + r)) * init_s[[comp]][[1]]) +
+          (((labelswitch_iter + r - 1) / (labelswitch_iter + r)) * ((old_theta[[comp]][[1]] - init_theta[[comp]][[1]])^2)) +
+          ((1 / (labelswitch_iter+r)) * ((eps_list[labelswitch_iter+r, comp] - init_theta[[comp]][[1]])^2))
+        init_s[[comp]][[2]] <- (((labelswitch_iter + r - 1) / (labelswitch_iter + r)) * init_s[[comp]][[2]]) +
+          (((labelswitch_iter + r - 1) / (labelswitch_iter + r)) * (old_theta[[comp]][[2]] - init_theta[[comp]][[2]])^2) +
+          ((1 / (labelswitch_iter+r)) * ((mu_list[[labelswitch_iter+r]][, comp] - init_theta[[comp]][[2]])^2))
+        init_s[[comp]][[3]] <- (((labelswitch_iter + r - 1) / (labelswitch_iter + r)) * init_s[[comp]][[3]]) +
+          (((labelswitch_iter + r - 1) / (labelswitch_iter + r)) * (old_theta[[comp]][[3]] - init_theta[[comp]][[3]])^2) +
+          ((1 / (labelswitch_iter+r)) * ((T_list[[labelswitch_iter+r]][,, comp] - init_theta[[comp]][[3]])^2))
+      }
+    }
+
+
+
+    # Calculate cluster probabilities -----------------------------------------
+
+    for (a in 1:n) {
+      denom = 0
+      for (w in 1:G) {
+        denom = denom + (eps_list[t, w] *
+                           mvtnorm::dmvnorm(X_list[[t]][a, ], mean = mu_list[[t]][, w], T_list[[t]][,,w]))
+      }
+      for (k in 1:G) {
+        z_list[[t]][a, k] = eps_list[t, k] *
+          mvtnorm::dmvnorm(X_list[[t]][a, ], mean = mu_list[[t]][, k], sigma = T_list[[t]][,,k]) / denom
+      }
+    }
+
+
+    # Cluster assignment ------------------------------------------------------
+
+    clust <- apply(z_list[[t]], 1, which.max)
+    for (k in 1:G) {
+      n_list[t, k] <- sum(clust == k)
+    }
+    class_list[t, ] <- clust
   }
+  # Discard burn-in ---------------------------------------------------------
+
+  eps_list <- eps_list[(bmcd_burn+1):bmcd_iter, ]
+  mu_list <- mu_list[(bmcd_burn+1):bmcd_iter]
+  T_list <- T_list[((bmcd_burn+1):bmcd_iter)]
+  sigma_sq_list <- sigma_sq_list[(bmcd_burn+1):bmcd_iter]
+  X_list <- X_list[(bmcd_burn+1):bmcd_iter]
+  z_list <- z_list[(bmcd_burn+1):bmcd_iter]
+
+
+  # Return list ------------------------------------------------------------
+
+  list(X_list = X_list,
+       sigma_sq_list = sigma_sq_list,
+       eps_list = eps_list,
+       mu_list = mu_list,
+       T_list = T_list,
+       z_list = z_list)
+
 }
