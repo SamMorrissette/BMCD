@@ -307,6 +307,7 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
     }
     class_list[t, ] <- clust
   }
+
   # Discard burn-in ---------------------------------------------------------
 
   eps_list <- eps_list[(bmcd_burn+1):bmcd_iter, ]
@@ -315,6 +316,8 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
   sigma_sq_list <- sigma_sq_list[(bmcd_burn+1):bmcd_iter]
   X_list <- X_list[(bmcd_burn+1):bmcd_iter]
   z_list <- z_list[(bmcd_burn+1):bmcd_iter]
+  n_list <- n_list[(bmcd_burn+1):bmcd_iter, ]
+  class_list <- class_list[(bmcd_burn+1):bmcd_iter, ]
 
 
   # Return list ------------------------------------------------------------
@@ -324,6 +327,8 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
        eps_list = eps_list,
        mu_list = mu_list,
        T_list = T_list,
-       z_list = z_list)
+       z_list = z_list,
+       n_list = n_list,
+       class_list = class_list)
 
 }

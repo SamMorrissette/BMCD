@@ -1,4 +1,5 @@
 #' @importFrom mclust Mclust mclustBIC
+#' @export
 
 bmcd <- function(distances, p, G, bmds_iter, bmds_burn, bmcd_iter, bmcd_burn, labelswitch_iter) {
   n <- nrow(distances)
@@ -32,5 +33,9 @@ bmcd <- function(distances, p, G, bmds_iter, bmds_burn, bmcd_iter, bmcd_burn, la
 
   # Run MCMC ----------------------------------------------------------------
   out <- bmcdMCMC(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_burn, labelswitch_iter)
+
+
+  # Calculate MIC -----------------------------------------------------------
+  calc_MIC <- MIC(distances, out, priors)
 
 }
