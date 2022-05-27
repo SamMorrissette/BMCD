@@ -20,6 +20,9 @@ bmcd <- function(distances, p, G, bmds_iter, bmds_burn, bmcd_iter, bmcd_burn, la
   T_init <- mclust_out$parameters$variance$sigma # List of component covariance matrices
   z_init <- mclust_out$z # Matrix of cluster assignment probabilities
 
+  ## Accounting for one dimension
+  mu_init <- matrix(mu_init, nrow = p, ncol = G)
+  T_init <- array(T_init, c(p,p,G))
 
   # Set priors --------------------------------------------------------------
 
@@ -36,6 +39,6 @@ bmcd <- function(distances, p, G, bmds_iter, bmds_burn, bmcd_iter, bmcd_burn, la
 
 
   # Calculate MIC -----------------------------------------------------------
-  calc_MIC <- MIC(distances, out, priors)
+  #calc_MIC <- MIC(distances, out, priors)
 
 }

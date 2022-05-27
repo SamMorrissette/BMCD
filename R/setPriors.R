@@ -15,7 +15,7 @@ setPriors <- function(distances, X_est, class_mat, p, G, n, m) {
     if (sum(index_vec) == 1) {
       prior_mean[, i] <- X_est[which(index_vec), ]
     } else if (sum(index_vec) >= 1) {
-      prior_mean[, i] <- colMeans(X_est[which(index_vec), ])
+      prior_mean[, i] <- colMeans(X_est[which(index_vec), , drop = FALSE])
     } else if (sum(index_vec) == 0) {
       prior_mean[, i] <- colMeans(X_est)  ############################################# ASK
     }
@@ -23,11 +23,11 @@ setPriors <- function(distances, X_est, class_mat, p, G, n, m) {
 
   # T_j (Inverse-Wishart hyperprior for mu_j)
   prior_alpha <- p+4
-  prior_Bj <- replicate(G, matrix(NA, ncol = p, nrow = p))
+  prior_Bj <- array(NA, c(p,p,G))
   for (i in 1:G) {
     index_vec <- class_mat == i
     if (sum(index_vec) > 1) {
-      prior_Bj[,,i] <- (prior_alpha - p - 1) * cov(X_est[which(index_vec), ])
+      prior_Bj[,,i] <- (prior_alpha - p - 1) * cov(X_est[which(index_vec), , drop = FALSE])
     } else {
       prior_Bj[,,i] <- (prior_alpha - p - 1) * cov(X_est) ############################################# ASK
     }

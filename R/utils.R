@@ -21,7 +21,7 @@ initLists <- function(paramList, X_est, class_mat, p, G, n, iter) {
 
   T_list <- rep(list(list()), iter)
   for (i in 1:iter) {
-    T_list[[i]] <- replicate(G, matrix(NA, ncol = p, nrow = p))
+    T_list[[i]] <- array(NA, c(p,p,G))
   }
   T_list[[1]] <- paramList[[4]]
 

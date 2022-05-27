@@ -148,7 +148,7 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
         S_j <- 0
       }
 
-      T_list_pst <- priors$prior_Bj[,,k] + (S_j/2)
+      T_list_pst <- as.matrix(priors$prior_Bj[,,k] + (S_j/2))
       tryCatch({
         T_list[[t]][,,k] <<- LaplacesDemon::rinvwishart(priors$prior_alpha + (n_list[t-1, k] / 2), T_list_pst)
       }, error = function(e) {
@@ -169,7 +169,11 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
 
       pst_var =  T_list[[t]][,,k] / (n_list[t-1, k]  + 1)
 
-      mu_list[[t]][,k] = mvtnorm::rmvnorm(1, mean = pst_mean, sigma = pst_var)
+      if (p > 1) {
+        mu_list[[t]][,k] = mvtnorm::rmvnorm(1, mean = pst_mean, sigma = pst_var)
+      } else {
+        mu_list[[t]][,k] = rnorm(1, mean = pst_mean, sd = sqrt(pst_var))
+      }
     }
 
 
@@ -238,7 +242,7 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
 
 
       ## T
-      T_theta <- replicate(G, matrix(NA, nrow = p, ncol = p))
+      T_theta <- array(NA, c(p,p,G))
       for (comp in 1:G) {
         T_theta[,,comp] <- init_theta[[comp]][[3]]
       }
@@ -257,8 +261,8 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
 
       if(sum(new_ind != c(1:G)) != 0) qwe <- c(qwe, t)
       eps_list[labelswitch_iter+r,] <- eps_list[labelswitch_iter+r, new_ind]
-      mu_list[[labelswitch_iter+r]] <- mu_list[[labelswitch_iter+r]][ , new_ind]
-      T_list[[labelswitch_iter+r]] <- T_list[[labelswitch_iter+r]][ ,, new_ind]
+      mu_list[[labelswitch_iter+r]] <- mu_list[[labelswitch_iter+r]][ , new_ind, drop = FALSE]
+      T_list[[labelswitch_iter+r]] <- T_list[[labelswitch_iter+r]][ ,, new_ind, drop = FALSE]
 
       ## Step 2
       old_theta <- init_theta
@@ -290,11 +294,15 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
       denom = 0
       for (w in 1:G) {
         denom = denom + (eps_list[t, w] *
-                           mvtnorm::dmvnorm(X_list[[t]][a, ], mean = mu_list[[t]][, w], T_list[[t]][,,w]))
+                           mvtnorm::dmvnorm(X_list[[t]][a, , drop = FALSE],
+                                            mean = mu_list[[t]][, w, drop = FALSE],
+                                            sigma = matrix(T_list[[t]][,,w, drop = FALSE], ncol = p, nrow = p)))
       }
       for (k in 1:G) {
         z_list[[t]][a, k] = eps_list[t, k] *
-          mvtnorm::dmvnorm(X_list[[t]][a, ], mean = mu_list[[t]][, k], sigma = T_list[[t]][,,k]) / denom
+          mvtnorm::dmvnorm(X_list[[t]][a, , drop = FALSE],
+                           mean = mu_list[[t]][, k, drop = FALSE],
+                           sigma = matrix(T_list[[t]][,,k, drop = FALSE], ncol = p, nrow = p)) / denom
       }
     }
 
