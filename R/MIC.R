@@ -18,7 +18,7 @@ MIC <- function(distances, bmcd_MCMC_list, priors) {
   ## Mu_j
   pr_mu <- rep(NA, G)
   for (i in 1:G) {
-    pr_mu[i] <- mvtnorm::dmvnorm(mu_star[,i], mean = priors$prior_mean[,i], sigma = T_star[,,i])
+    pr_mu[i] <- mvtnorm::dmvnorm(mu_star[,i], mean = priors$prior_mean[,i], sigma = matrix(T_star[,,i], nrow = p, ncol = p))
   }
 
   ## T_j
@@ -41,7 +41,9 @@ MIC <- function(distances, bmcd_MCMC_list, priors) {
   for (i in 1:n) {
     total = 0
     for (comp in 1:G) {
-      total = total + (eps_star[comp] * mvtnorm::dmvnorm(X[i,], mean = mu_star[,comp], sigma = T_star[,,comp]))
+      total = total + (eps_star[comp] * mvtnorm::dmvnorm(X[i,],
+                                                         mean = mu_star[,comp],
+                                                         sigma = matrix(T_star[,,comp], nrow = p, ncol = p)))
     }
     x_densities[i] <- total
   }
@@ -64,10 +66,10 @@ MIC <- function(distances, bmcd_MCMC_list, priors) {
 
   for (i in 1:G) {
     ## Calculate pi(mu_j* | others)
-    x_j = X[which(K_star==i), ]
+    x_j = X[which(K_star==i), , drop = FALSE]
     x_j_bar = colMeans(x_j)
     comp_mean = ((n_star[i] * x_j_bar) + priors$prior_mean[,i]) / (n_star[i] + 1)
-    comp_sigma = T_star[,,i] / (n_star[i] + 1)
+    comp_sigma = matrix(T_star[,,i] / (n_star[i] + 1), ncol = p, nrow = p)
     pi_mu[i] <- mvtnorm::dmvnorm(mu_star[,i], mean = comp_mean, sigma = comp_sigma)
 
     ## Calculate S_j
