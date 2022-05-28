@@ -20,8 +20,8 @@ MIC <- function(distances, bmcd_MCMC_list, priors, p, G) {
   for (i in 1:G) {
     pr_mu[i] <- mvtnorm::dmvnorm(mu_star[,i], mean = priors$prior_mean[,i], sigma = matrix(T_star[,,i], nrow = p, ncol = p))
   }
-  #asdf
-  ## T_j #Test_Branch
+
+  ## T_j
   pr_T <- rep(NA, G)
   for (i in 1:G) {
     pr_T[i] <- LaplacesDemon::dinvwishart(T_star[,,i], nu = priors$prior_alpha, S = priors$prior_Bj[,,i], log = FALSE) # Change to log = TRUE?
