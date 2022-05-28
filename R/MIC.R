@@ -20,7 +20,7 @@ MIC <- function(distances, bmcd_MCMC_list, priors, p, G) {
   for (i in 1:G) {
     pr_mu[i] <- mvtnorm::dmvnorm(mu_star[,i], mean = priors$prior_mean[,i], sigma = matrix(T_star[,,i], nrow = p, ncol = p))
   }
-
+  #asdf
   ## T_j #Test_Branch
   pr_T <- rep(NA, G)
   for (i in 1:G) {
