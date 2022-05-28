@@ -3,7 +3,7 @@
 #' @importFrom LaplacesDemon dinvwishart
 #'
 
-MIC <- function(distances, bmcd_MCMC_list, priors) {
+MIC <- function(distances, bmcd_MCMC_list, priors, p, G) {
   mcmc <- bmcd_MCMC_list
 
   eps_star <- colMeans(mcmc$eps_list)
@@ -31,7 +31,7 @@ MIC <- function(distances, bmcd_MCMC_list, priors) {
 
 
 
-  # Calculate pi(X_pg | Lambda*) --------------------------------------------
+  # Calculate pi(X_pG | Lambda*) --------------------------------------------
 
   X <- Reduce("+", mcmc$X_list) / length(mcmc$X_list)
   n <- nrow(X)
@@ -49,7 +49,7 @@ MIC <- function(distances, bmcd_MCMC_list, priors) {
   }
 
 
-  # Calculate pi(Lambda* | X_pg) --------------------------------------------
+  # Calculate pi(Lambda* | X_pG) --------------------------------------------
 
   #n_star <- colMeans(mcmc$n_list)
   z_star <- Reduce("+", mcmc$z_list) / length(mcmc$z_list)
@@ -80,11 +80,38 @@ MIC <- function(distances, bmcd_MCMC_list, priors) {
     }
 
     ## Calculate pi(T_j* | others)
-    pi_T[i] <- LaplacesDemon::dinvwishart(T_star[,,i], nu = priors$prior_alpha + (n_star[i]/2), priors$prior_Bj[,,i] + (S_j / 2))
+    pi_T[i] <- LaplacesDemon::dinvwishart(T_star[,,i],
+                                          nu = priors$prior_alpha + (n_star[i]/2),
+                                          S = priors$prior_Bj[,,i] + (S_j / 2))
   }
   expectation <- mean(pi_eps * prod(pi_mu * pi_T))
 
   SSR <- sum((as.matrix(dist(X)) - distances)^2) / 2
 
-  MIC <- ((m-2) * SSR) - (2 * log(prod(x_densities) * prod(pi_Lambda) / expectation))
+  if (p == 1) {
+    MIC <- ((m-2) * SSR) - (2 * log(prod(x_densities) * prod(pi_Lambda) / expectation))
+  } else if (p > 1) {
+    # Calculate Hn ------------------------------------------------------------
+    Hn = -((n + 1) * log(pi)) + (2 * log(gamma((n+1) / 2)))
+
+
+    # Second term -------------------------------------------------------------
+    centered_X <- sweep(X, 2, colMeans(X))
+    S = 0
+    for (j in 1:n) {
+      S = S + centered_X[j,] %*% t(centered_X[j,])
+    }
+    -n * log((diag(S)[p]) / n)
+
+    # Third term --------------------------------------------------------------
+
+
+    ### In order to calculate r_j, I need all dimensions of X (run edited_bmdsMCMC for dimensions 1:p)
+    for (j in 1:(p-1)) {
+
+    }
+
+
+
+  }
 }

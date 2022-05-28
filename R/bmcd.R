@@ -39,6 +39,5 @@ bmcd <- function(distances, p, G, bmds_iter, bmds_burn, bmcd_iter, bmcd_burn, la
 
 
   # Calculate MIC -----------------------------------------------------------
-  #calc_MIC <- MIC(distances, out, priors)
-
+  #calc_MIC <- MIC(distances, out, priors, p, G)
 }
