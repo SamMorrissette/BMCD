@@ -14,6 +14,7 @@ bmcd <- function(distances, max_p, min_G, max_G, bmds_iter, bmds_burn, bmcd_iter
     temp_bmds <- edited_bmdsMCMC(DIST = distances, p = i, nwarm = bmds_burn, niter = bmds_iter)
     X_out[[i]] <- temp_bmds$x_bmds
     sigma_sq_out[[i]] <- temp_bmds$e_sigma
+    print(i)
   }
 
   # Calculate MDSIC to choose best p ----------------------------------------
