@@ -18,7 +18,10 @@ bmcd <- function(distances, max_p, min_G, max_G, bmds_iter, bmds_burn, bmcd_iter
 
   # Calculate MDSIC to choose best p ----------------------------------------
   mdsics <- edited_MDSIC(distances, X_out)
+  print(mdsics)
+  plot(mdsics)
   p <- which.min(mdsics)
+  #p <- max_p
   print(p)
 
   X_est <- X_out[[p]]
@@ -45,7 +48,7 @@ bmcd <- function(distances, max_p, min_G, max_G, bmds_iter, bmds_burn, bmcd_iter
 
     # Set priors --------------------------------------------------------------
 
-    priors[[ind]] <- setPriors(distances, X_est, mclust_out$classification, p, G, n, m)
+    priors[[ind]] <- setPriors(distances, X_est, mclust_out, p, G, n, m)
 
     # Initialize MCMC lists ---------------------------------------------------
     init_params <- list(sigma_sq, eps_init, mu_init, T_init, z_init)
@@ -56,8 +59,9 @@ bmcd <- function(distances, max_p, min_G, max_G, bmds_iter, bmds_burn, bmcd_iter
     out[[ind]]$G <- G
     ind <- ind + 1
   }
-
+  #out
+  list(X_out, out, priors, p)
   # Calculate MIC -----------------------------------------------------------
-  calc_MIC <- MIC(distances, X_out, out, priors, p, min_G, max_G)
-  print(calc_MIC)
+  #calc_MIC <- MIC(distances, X_out, out, priors, p, min_G, max_G)
+  #print(calc_MIC)
 }

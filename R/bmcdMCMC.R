@@ -64,8 +64,8 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
       diff_new <- delta_new - distances
       diff_old <- delta_old - distances
 
-      Q2_new <- (1/sigma_sq_list[t-1]) * sum(diff_new[tri_ind]^2)
-      Q2_old <- (1/sigma_sq_list[t-1]) * sum(diff_old[tri_ind]^2)
+      Q2_new <- (1/(2*sigma_sq_list[t-1])) * sum(diff_new[tri_ind]^2)
+      Q2_old <- (1/(2*sigma_sq_list[t-1])) * sum(diff_old[tri_ind]^2)
 
       ## Third term
 
@@ -103,7 +103,7 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
     # Generate sigma_sq -------------------------------------------------------
 
     delta <- as.matrix(dist(X_list[[t]]))
-    SSR <- sum((delta - distances)^2)
+    SSR <- sum((delta - distances)^2) / 2
 
     sigma_sq_old <- sigma_sq_list[t-1]
     sigma_sq_new <- rnorm(1, mean = sigma_sq_old, sd = sqrt(sigma_prop_variance))
@@ -149,13 +149,14 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
       }
 
       T_list_pst <- as.matrix(priors$prior_Bj[,,k] + (S_j/2))
-      tryCatch({
-        T_list[[t]][,,k] <<- LaplacesDemon::rinvwishart(priors$prior_alpha + (n_list[t-1, k] / 2), T_list_pst)
-      }, error = function(e) {
-        diag(T_list_pst) <- diag(T_list_pst) + 1e-05
-        T_list[[t]][,,k] <<- LaplacesDemon::rinvwishart(priors$prior_alpha + (n_list[t-1, k] / 2), T_list_pst)
-      }
-      )
+      T_list[[t]][,,k] <- LaplacesDemon::rinvwishart(priors$prior_alpha + (n_list[t-1, k] / 2), T_list_pst)
+      # tryCatch({
+      #   T_list[[t]][,,k] <<- LaplacesDemon::rinvwishart(priors$prior_alpha + (n_list[t-1, k] / 2), T_list_pst)
+      # }, error = function(e) {
+      #   diag(T_list_pst) <- diag(T_list_pst) + 1e-05
+      #   T_list[[t]][,,k] <<- LaplacesDemon::rinvwishart(priors$prior_alpha + (n_list[t-1, k] / 2), T_list_pst)
+      # }
+      # )
 
       if (n_list[t-1, k] > 1) {
         x_bar_j <- colMeans(x_j)
@@ -293,13 +294,13 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
     for (a in 1:n) {
       denom = 0
       for (w in 1:G) {
-        denom = denom + (eps_list[t, w] *
+        denom = denom + #(eps_list[t, w] *
                            mvtnorm::dmvnorm(X_list[[t]][a, , drop = FALSE],
                                             mean = mu_list[[t]][, w, drop = FALSE],
-                                            sigma = matrix(T_list[[t]][,,w, drop = FALSE], ncol = p, nrow = p)))
+                                            sigma = matrix(T_list[[t]][,,w, drop = FALSE], ncol = p, nrow = p))#)
       }
       for (k in 1:G) {
-        z_list[[t]][a, k] = eps_list[t, k] *
+        z_list[[t]][a, k] = #eps_list[t, k] *
           mvtnorm::dmvnorm(X_list[[t]][a, , drop = FALSE],
                            mean = mu_list[[t]][, k, drop = FALSE],
                            sigma = matrix(T_list[[t]][,,k, drop = FALSE], ncol = p, nrow = p)) / denom
