@@ -1,7 +1,7 @@
 #' @importFrom gtools ddirichlet
 #' @importFrom mvtnorm dmvnorm
 #' @importFrom LaplacesDemon dinvwishart
-#'
+#' @export
 
 MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G) {
   mics <-rep(NA, max_G - min_G + 1)
