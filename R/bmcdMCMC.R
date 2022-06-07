@@ -72,11 +72,13 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
       norm_new <- delta_new / sqrt(sigma_sq_list[t-1])
       norm_old <- delta_old / sqrt(sigma_sq_list[t-1])
 
-      Q3_new <- prod(pnorm(norm_new[tri_ind]))
-      Q3_old <- prod(pnorm(norm_old[tri_ind]))
+      Q3_new <- sum((pnorm(norm_new[tri_ind], log.p = TRUE)))
+      Q3_old <- sum((pnorm(norm_old[tri_ind], log.p = TRUE)))
+      print(Q3_new)
+      print(Q3_old)
 
       ## Calculate the ratio (using log instead to simplify things)
-      ratio <- -0.5*(Q1_new - Q1_old) - (Q2_new - Q2_old) + (log(Q3_new) - log(Q3_old))
+      ratio <- -0.5*(Q1_new - Q1_old) - (Q2_new - Q2_old) + (Q3_new - Q3_old)
 
       ## Have to take log of random uniform variable since we are working on log scale
       if (log(runif(1)) < ratio) {
