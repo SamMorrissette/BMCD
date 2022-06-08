@@ -2,6 +2,7 @@
 
 export(MIC)
 export(bmcd)
+export(bmds)
 importFrom(LaplacesDemon,dinvwishart)
 importFrom(LaplacesDemon,rinvwishart)
 importFrom(Rcpp,sourceCpp)

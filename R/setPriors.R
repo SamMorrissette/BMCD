@@ -11,9 +11,7 @@ setPriors <- function(distances, X_est, mclust_result, p, G, n, m) {
   ## Use the means of the estimated object configuration
   prior_alpha <- p+4
   prior_mean <- mclust_result$parameters$mean
-  print(prior_mean)
   prior_Bj <- (prior_alpha - p - 1) * mclust_result$parameters$variance$sigma
-  print(prior_Bj)
 
   #prior_mean <- matrix(NA, nrow = p, ncol = G)
   #prior_Bj <- array(NA, c(p,p,G))
