@@ -70,20 +70,22 @@ MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G) {
       for (i in 1:n) {
         total <- 0
         for (j in 1:G) {
-          total <- total + mcmc$eps_list[iter, j] * dmvnorm(X[i,], mcmc$mu_list[[iter]][,j], mcmc$T_list[[iter]][,,j])
+          total <- total + mcmc$eps_list[iter, j] * dmvnorm(mcmc$X_list[[iter]][i,], mcmc$mu_list[[iter]][,j], mcmc$T_list[[iter]][,,j])
         }
         xs <- c(xs, total)
       }
       aics_iter[iter] <- 2*num_params - (2*sum(log(xs)))
     }
+    print(which.min(aics_iter))
     aics[index] <- min(aics_iter)
-    optim_params[[index]] <- list(eps = mcmc$eps_list[which.min(aics_iter), ],
+    optim_params[[index]] <- list(X = mcmc$X_list[[which.min(aics_iter)]],
+                                  eps = mcmc$eps_list[which.min(aics_iter), ],
                                 mu = mcmc$mu_list[[which.min(aics_iter)]],
                                 S = mcmc$T_list[[which.min(aics_iter)]],
                                 z = mcmc$z_list[[which.min(aics_iter)]])
 
 
-    print(index)
+    #print(index)
 
 
 

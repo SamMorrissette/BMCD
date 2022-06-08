@@ -149,14 +149,14 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
       }
 
       T_list_pst <- as.matrix(priors$prior_Bj[,,k] + (S_j/2))
-      T_list[[t]][,,k] <- LaplacesDemon::rinvwishart(priors$prior_alpha + (n_list[t-1, k] / 2), T_list_pst)
-      # tryCatch({
-      #   T_list[[t]][,,k] <<- LaplacesDemon::rinvwishart(priors$prior_alpha + (n_list[t-1, k] / 2), T_list_pst)
-      # }, error = function(e) {
-      #   diag(T_list_pst) <- diag(T_list_pst) + 1e-05
-      #   T_list[[t]][,,k] <<- LaplacesDemon::rinvwishart(priors$prior_alpha + (n_list[t-1, k] / 2), T_list_pst)
-      # }
-      # )
+      #T_list[[t]][,,k] <- LaplacesDemon::rinvwishart(priors$prior_alpha + (n_list[t-1, k] / 2), T_list_pst)
+      tryCatch({
+        T_list[[t]][,,k] <<- LaplacesDemon::rinvwishart(priors$prior_alpha + (n_list[t-1, k] / 2), T_list_pst)
+      }, error = function(e) {
+        diag(T_list_pst) <- diag(T_list_pst) + 1e-05
+        T_list[[t]][,,k] <<- LaplacesDemon::rinvwishart(priors$prior_alpha + (n_list[t-1, k] / 2), T_list_pst)
+      }
+      )
 
       if (n_list[t-1, k] > 1) {
         x_bar_j <- colMeans(x_j)
