@@ -209,8 +209,8 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
           Reduce(`+`, lapply(T_temp, function(x) (x - init_theta[[comp]][[3]])^2))
       }
 
-      theta_perms <- permn(init_theta)
-      perm_labels <- permn(1:G)
+      # theta_perms <- permn(init_theta)
+      # perm_labels <- permn(1:G)
 
     } else if (t > labelswitch_iter) {
       r <- t - labelswitch_iter
