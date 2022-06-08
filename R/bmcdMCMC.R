@@ -74,8 +74,6 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
 
       Q3_new <- sum((pnorm(norm_new[tri_ind], log.p = TRUE)))
       Q3_old <- sum((pnorm(norm_old[tri_ind], log.p = TRUE)))
-      print(Q3_new)
-      print(Q3_old)
 
       ## Calculate the ratio (using log instead to simplify things)
       ratio <- -0.5*(Q1_new - Q1_old) - (Q2_new - Q2_old) + (Q3_new - Q3_old)
