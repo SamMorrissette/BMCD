@@ -52,10 +52,10 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
 
       ## First term
       A_old <- as.matrix(x_old - mu_list[[t-1]][ ,j])
-      Q1_old <- t(A_old) %*% solve(T_list[[t-1]][,,j]) %*% A_old
+      Q1_old <- t(A_old) %*% solve(T_list[[t-1]][,,j], tol = 1e-17) %*% A_old
 
       A_new <- as.matrix(x_new - mu_list[[t-1]][ ,j])
-      Q1_new <- t(A_new) %*% solve(T_list[[t-1]][,,j]) %*% A_new
+      Q1_new <- t(A_new) %*% solve(T_list[[t-1]][,,j], tol = 1e-17) %*% A_new
 
       ## Second term
       delta_new <- as.matrix(dist(X_new))
