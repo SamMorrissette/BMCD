@@ -13,6 +13,7 @@ MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G, parallel
   mics <-rep(NA, max_G - min_G + 1)
   bics <- rep(NA, max_G - min_G + 1)
   aics <- rep(NA, max_G - min_G + 1)
+  DICs <- rep(NA, max_G - min_G + 1)
   mod_aics <- rep(NA, max_G - min_G + 1)
   optim_params <- rep(list(list()), (max_G - min_G + 1))
   n <- nrow(distances)
@@ -71,6 +72,8 @@ MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G, parallel
       num_params <- G*(p+p+1)#G*((p*p - p) / 2  + (2*p) + 1)
 
       aics_iter <- rep(NA, nrow(mcmc$eps_list))
+
+      D <- rep(NA, nrow(mcmc$eps_list))
       for (iter in 1:nrow(mcmc$eps_list)) {
         xs <- c()
         for (i in 1:n) {
@@ -80,8 +83,23 @@ MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G, parallel
           }
           xs <- c(xs, total)
         }
+        D[iter] <- -2 * sum(log(xs))
         aics_iter[iter] <- 2*num_params - (2*sum(log(xs)))
       }
+      xs <- c()
+      for (i in 1:n) {
+        total <- 0
+        for (j in 1:G) {
+          total <- total + eps_star[j] * dmvnorm(X[i,], mu_star[,j], T_star[,,j])
+        }
+        xs <- c(xs, total)
+      }
+      D_theta_bar <- -2 * sum(log(xs))
+      p_d <- mean(D) - D_theta_bar
+      DIC <- D_theta_bar + (2*p_d)
+      print(paste(index, DIC))
+
+
       print(which.min(aics_iter))
       aics[index] <- min(aics_iter)
       optim_params[[index]] <- list(X = mcmc$X_list[[which.min(aics_iter)]],
@@ -89,6 +107,7 @@ MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G, parallel
                                   mu = mcmc$mu_list[[which.min(aics_iter)]],
                                   S = mcmc$T_list[[which.min(aics_iter)]],
                                   z = mcmc$z_list[[which.min(aics_iter)]])
+      DICs[index] <- DIC
     }
   } else if (parallel == TRUE & num_cores == 0) {
     stop("num_cores = 0")
@@ -98,42 +117,58 @@ MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G, parallel
              function(i) c(x[[i]], lapply(list(...), function(y) y[[i]])))
     }
     out_list <- foreach::foreach(index=1:(max_G - min_G + 1), .packages = c("BMCD", "gtools", "LaplacesDemon","mvtnorm"),
-                                 .combine='comb', .multicombine=TRUE, .init=list(c(), c())) %dopar% {
+                                 .combine='comb', .multicombine=TRUE, .init=list(c(), c(), c())) %dopar% {
                                    mcmc <- bmcd_MCMC_list[[index]]
                                    G <- mcmc$G
                                    prior_G <- priors[[index]]
 
+                                   eps_star <- colMeans(mcmc$eps_list)
+                                   mu_star <- Reduce("+", mcmc$mu_list) / length(mcmc$mu_list)
+                                   T_star <- Reduce("+", mcmc$T_list) / length(mcmc$T_list)
                                    X <- Reduce("+", mcmc$X_list) / length(mcmc$X_list)
                                    SSR <- sum((as.matrix(dist(X)) - distances)^2) / 2
 
 
                                    num_params <- G*(p+p+1)#G*((p*p - p) / 2  + (2*p) + 1)
 
-
-
                                    aics_iter <- rep(NA, nrow(mcmc$eps_list))
+                                   D <- rep(NA, nrow(mcmc$eps_list))
+
                                    for (iter in 1:nrow(mcmc$eps_list)) {
                                      xs <- c()
                                      for (i in 1:n) {
                                        total <- 0
                                        for (j in 1:G) {
-                                         total <- total + mcmc$eps_list[iter, j] * dmvnorm(mcmc$X_list[[iter]][i,], mcmc$mu_list[[iter]][,j], mcmc$T_list[[iter]][,,j])
+                                         total <- total + mcmc$eps_list[iter, j] * dmvnorm(X[i,], mcmc$mu_list[[iter]][,j], mcmc$T_list[[iter]][,,j])
                                        }
                                        xs <- c(xs, total)
                                      }
+                                     D[iter] <- -2 * sum(log(xs))
                                      aics_iter[iter] <- 2*num_params - (2*sum(log(xs)))
                                    }
+                                   xs <- c()
+                                   for (i in 1:n) {
+                                     total <- 0
+                                     for (j in 1:G) {
+                                       total <- total + eps_star[j] * dmvnorm(X[i,], mu_star[,j], T_star[,,j])
+                                     }
+                                     xs <- c(xs, total)
+                                   }
+                                   D_theta_bar <- -2 * sum(log(xs))
+                                   p_d <- mean(D) - D_theta_bar
+                                   DIC_G <- D_theta_bar + (2*p_d)
+
                                    aic_G <- min(aics_iter)
                                    optim_param_G <- list(X = mcmc$X_list[[which.min(aics_iter)]],
                                                                  eps = mcmc$eps_list[which.min(aics_iter), ],
                                                                  mu = mcmc$mu_list[[which.min(aics_iter)]],
                                                                  S = mcmc$T_list[[which.min(aics_iter)]],
                                                                  z = mcmc$z_list[[which.min(aics_iter)]])
-                                   list(aic_G, optim_param_G)
+                                   list(aic_G, optim_param_G, DIC_G)
                                  }
     aics <- unlist(out_list[[1]])
     optim_params <- out_list[[2]]
-
+    DICs <- unlist(out_list[[3]])
   }
 
 
@@ -314,6 +349,7 @@ MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G, parallel
   # print(paste("mod_aics:", mod_aics))
   # print(which.min(mod_aics))
   return(list(aics = aics,
-              optim_params = optim_params))
+              optim_params = optim_params,
+              DICS = DICs))
 
 }
