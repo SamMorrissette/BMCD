@@ -1,9 +1,15 @@
 #' @importFrom gtools ddirichlet
 #' @importFrom mvtnorm dmvnorm
 #' @importFrom LaplacesDemon dinvwishart
+#' @importFrom foreach %dopar% foreach
+#' @importFrom doParallel registerDoParallel
 #' @export
 
-MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G) {
+MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G, parallel = FALSE, num_cores = 0) {
+  if(parallel == TRUE & num_cores > 0) {
+    doParallel::registerDoParallel(cores=num_cores)
+  }
+
   mics <-rep(NA, max_G - min_G + 1)
   bics <- rep(NA, max_G - min_G + 1)
   aics <- rep(NA, max_G - min_G + 1)
@@ -49,40 +55,86 @@ MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G) {
   #   }
   #   A = A + Hn - (n * log((diag(S)[q]) / n)) + total
   # }
+  if (parallel == FALSE & num_cores == 0) {
+    for (index in 1:(max_G - min_G + 1)) {
+      mcmc <- bmcd_MCMC_list[[index]]
+      G <- mcmc$G
+      prior_G <- priors[[index]]
 
-  for (index in 1:(max_G - min_G + 1)) {
-    mcmc <- bmcd_MCMC_list[[index]]
-    G <- mcmc$G
-    prior_G <- priors[[index]]
-
-    eps_star <- colMeans(mcmc$eps_list)
-    mu_star <- Reduce("+", mcmc$mu_list) / length(mcmc$mu_list)
-    T_star <- Reduce("+", mcmc$T_list) / length(mcmc$T_list)
-    X <- Reduce("+", mcmc$X_list) / length(mcmc$X_list)
-    SSR <- sum((as.matrix(dist(X)) - distances)^2) / 2
+      eps_star <- colMeans(mcmc$eps_list)
+      mu_star <- Reduce("+", mcmc$mu_list) / length(mcmc$mu_list)
+      T_star <- Reduce("+", mcmc$T_list) / length(mcmc$T_list)
+      X <- Reduce("+", mcmc$X_list) / length(mcmc$X_list)
+      SSR <- sum((as.matrix(dist(X)) - distances)^2) / 2
 
 
-    num_params <- G*(p+p+1)#G*((p*p - p) / 2  + (2*p) + 1)
+      num_params <- G*(p+p+1)#G*((p*p - p) / 2  + (2*p) + 1)
 
-    aics_iter <- rep(NA, nrow(mcmc$eps_list))
-    for (iter in 1:nrow(mcmc$eps_list)) {
-      xs <- c()
-      for (i in 1:n) {
-        total <- 0
-        for (j in 1:G) {
-          total <- total + mcmc$eps_list[iter, j] * dmvnorm(mcmc$X_list[[iter]][i,], mcmc$mu_list[[iter]][,j], mcmc$T_list[[iter]][,,j])
+      aics_iter <- rep(NA, nrow(mcmc$eps_list))
+      for (iter in 1:nrow(mcmc$eps_list)) {
+        xs <- c()
+        for (i in 1:n) {
+          total <- 0
+          for (j in 1:G) {
+            total <- total + mcmc$eps_list[iter, j] * dmvnorm(mcmc$X_list[[iter]][i,], mcmc$mu_list[[iter]][,j], mcmc$T_list[[iter]][,,j])
+          }
+          xs <- c(xs, total)
         }
-        xs <- c(xs, total)
+        aics_iter[iter] <- 2*num_params - (2*sum(log(xs)))
       }
-      aics_iter[iter] <- 2*num_params - (2*sum(log(xs)))
+      print(which.min(aics_iter))
+      aics[index] <- min(aics_iter)
+      optim_params[[index]] <- list(X = mcmc$X_list[[which.min(aics_iter)]],
+                                    eps = mcmc$eps_list[which.min(aics_iter), ],
+                                  mu = mcmc$mu_list[[which.min(aics_iter)]],
+                                  S = mcmc$T_list[[which.min(aics_iter)]],
+                                  z = mcmc$z_list[[which.min(aics_iter)]])
     }
-    print(which.min(aics_iter))
-    aics[index] <- min(aics_iter)
-    optim_params[[index]] <- list(X = mcmc$X_list[[which.min(aics_iter)]],
-                                  eps = mcmc$eps_list[which.min(aics_iter), ],
-                                mu = mcmc$mu_list[[which.min(aics_iter)]],
-                                S = mcmc$T_list[[which.min(aics_iter)]],
-                                z = mcmc$z_list[[which.min(aics_iter)]])
+  } else if (parallel == TRUE & num_cores == 0) {
+    stop("num_cores = 0")
+  } else if (parallel == TRUE & num_cores > 0) {
+    comb <- function(x, ...) {
+      lapply(seq_along(x),
+             function(i) c(x[[i]], lapply(list(...), function(y) y[[i]])))
+    }
+    out_list <- foreach::foreach(index=1:(max_G - min_G + 1), .packages = c("BMCD", "gtools", "LaplacesDemon","mvtnorm"),
+                                 .combine='comb', .multicombine=TRUE, .init=list(c(), c())) %dopar% {
+                                   mcmc <- bmcd_MCMC_list[[index]]
+                                   G <- mcmc$G
+                                   prior_G <- priors[[index]]
+
+                                   X <- Reduce("+", mcmc$X_list) / length(mcmc$X_list)
+                                   SSR <- sum((as.matrix(dist(X)) - distances)^2) / 2
+
+
+                                   num_params <- G*(p+p+1)#G*((p*p - p) / 2  + (2*p) + 1)
+
+
+
+                                   aics_iter <- rep(NA, nrow(mcmc$eps_list))
+                                   for (iter in 1:nrow(mcmc$eps_list)) {
+                                     xs <- c()
+                                     for (i in 1:n) {
+                                       total <- 0
+                                       for (j in 1:G) {
+                                         total <- total + mcmc$eps_list[iter, j] * dmvnorm(mcmc$X_list[[iter]][i,], mcmc$mu_list[[iter]][,j], mcmc$T_list[[iter]][,,j])
+                                       }
+                                       xs <- c(xs, total)
+                                     }
+                                     aics_iter[iter] <- 2*num_params - (2*sum(log(xs)))
+                                   }
+                                   aic_G <- min(aics_iter)
+                                   optim_param_G <- list(X = mcmc$X_list[[which.min(aics_iter)]],
+                                                                 eps = mcmc$eps_list[which.min(aics_iter), ],
+                                                                 mu = mcmc$mu_list[[which.min(aics_iter)]],
+                                                                 S = mcmc$T_list[[which.min(aics_iter)]],
+                                                                 z = mcmc$z_list[[which.min(aics_iter)]])
+                                   list(aic_G, optim_param_G)
+                                 }
+    aics <- unlist(out_list[[1]])
+    optim_params <- out_list[[2]]
+
+  }
 
 
     #print(index)
@@ -255,7 +307,6 @@ MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G) {
     # #bics[index] <- ((m-2) * log(SSR) - 2 * (sum(log(xs))) + (log(n) * num_params))
     # aics[index] <- 2*num_params - (2*sum(log(xs)))
     # mod_aics[index] <- (m-2) * log(SSR) -(2*num_params - (2*sum(log(xs))))
-  }
   # print(paste("Bics:", bics))
   # print(which.min(bics))
   # print(paste("MICS:", MICS))
