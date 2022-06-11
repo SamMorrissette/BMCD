@@ -76,7 +76,7 @@ MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G, parallel
         for (i in 1:n) {
           total <- 0
           for (j in 1:G) {
-            total <- total + mcmc$eps_list[iter, j] * dmvnorm(mcmc$X_list[[iter]][i,], mcmc$mu_list[[iter]][,j], mcmc$T_list[[iter]][,,j])
+            total <- total + mcmc$eps_list[iter, j] * dmvnorm(X[i,], mcmc$mu_list[[iter]][,j], mcmc$T_list[[iter]][,,j])
           }
           xs <- c(xs, total)
         }
