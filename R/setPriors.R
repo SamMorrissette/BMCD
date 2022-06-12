@@ -9,16 +9,16 @@ setPriors <- function(distances, X_est, mclust_result, p, G, n, m) {
   # mu_j (normal prior)
 
   ## Use the means of the estimated object configuration
-  prior_alpha <- p+4
-  prior_mean <- mclust_result$parameters$mean
-  prior_Bj <- (prior_alpha - p - 1) * mclust_result$parameters$variance$sigma
+  prior_alpha <- p+2
+  #prior_mean <- mclust_result$parameters$mean
+  #prior_Bj <- (prior_alpha - p - 1) * mclust_result$parameters$variance$sigma
 
-  #prior_mean <- matrix(NA, nrow = p, ncol = G)
-  #prior_Bj <- array(NA, c(p,p,G))
-  # for (i in 1:G) {
-  #   prior_mean[,i] <- colMeans(X_est)
-  #   prior_Bj[,,i] <- ((prior_alpha - p - 1) * cov(X_est)) #Changed the prior here
-  # }
+  prior_mean <- matrix(NA, nrow = p, ncol = G)
+  prior_Bj <- array(NA, c(p,p,G))
+  for (i in 1:G) {
+    prior_mean[,i] <- colMeans(X_est)
+    prior_Bj[,,i] <- ((prior_alpha - p - 1) * cov(X_est)) #Changed the prior here
+  }
 
 
 
