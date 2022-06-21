@@ -17,7 +17,7 @@ setPriors <- function(distances, X_est, mclust_result, p, G, n, m) {
   prior_Bj <- array(NA, c(p,p,G))
   for (i in 1:G) {
     prior_mean[,i] <- colMeans(X_est)
-    prior_Bj[,,i] <- ((prior_alpha - p - 1) * cov(X_est)) #Changed the prior here
+    prior_Bj[,,i] <- ((prior_alpha - p - 1) * cov(X_est)) / G #Changed the prior here
   }
 
 
