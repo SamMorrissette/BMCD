@@ -132,6 +132,7 @@ MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G, parallel
                                    num_params <- G*(p+p+1)#G*((p*p - p) / 2  + (2*p) + 1)
 
                                    aics_iter <- rep(NA, nrow(mcmc$eps_list))
+                                   bics_iter <- rep(NA, nrow(mcmc$eps_list))
                                    D <- rep(NA, nrow(mcmc$eps_list))
 
                                    for (iter in 1:nrow(mcmc$eps_list)) {
@@ -145,6 +146,7 @@ MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G, parallel
                                      }
                                      D[iter] <- -2 * sum(log(xs))
                                      aics_iter[iter] <- 2*num_params - (2*sum(log(xs)))
+                                     bics_iter[iter] <- (log(n) * num_params) - 2 * (sum(log(xs)))
                                    }
                                    xs <- c()
                                    for (i in 1:n) {
@@ -159,16 +161,18 @@ MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G, parallel
                                    DIC_G <- D_theta_bar + (2*p_d)
 
                                    aic_G <- min(aics_iter)
+                                   bic_G <- min(bics_iter)
                                    optim_param_G <- list(X = mcmc$X_list[[which.min(aics_iter)]],
                                                                  eps = mcmc$eps_list[which.min(aics_iter), ],
                                                                  mu = mcmc$mu_list[[which.min(aics_iter)]],
                                                                  S = mcmc$T_list[[which.min(aics_iter)]],
                                                                  z = mcmc$z_list[[which.min(aics_iter)]])
-                                   list(aic_G, optim_param_G, DIC_G)
+                                   list(aic_G, optim_param_G, DIC_G, bic_G)
                                  }
     aics <- unlist(out_list[[1]])
     optim_params <- out_list[[2]]
     DICs <- unlist(out_list[[3]])
+    bics <- unlist(out_list[[4]])
   }
 
 
@@ -338,7 +342,7 @@ MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G, parallel
     #   }
     #   xs <- c(xs, total)
     # }
-    # bics[index] <- -2 * (sum(log(xs))) + (log(n) * num_params)
+
     # #bics[index] <- ((m-2) * log(SSR) - 2 * (sum(log(xs))) + (log(n) * num_params))
     # aics[index] <- 2*num_params - (2*sum(log(xs)))
     # mod_aics[index] <- (m-2) * log(SSR) -(2*num_params - (2*sum(log(xs))))
@@ -350,6 +354,7 @@ MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G, parallel
   # print(which.min(mod_aics))
   return(list(aics = aics,
               optim_params = optim_params,
-              DICS = DICs))
+              DICS = DICs,
+              bics = bics))
 
 }
