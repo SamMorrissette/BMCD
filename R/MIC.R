@@ -117,7 +117,7 @@ MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G, parallel
              function(i) c(x[[i]], lapply(list(...), function(y) y[[i]])))
     }
     out_list <- foreach::foreach(index=1:(max_G - min_G + 1), .packages = c("BMCD", "gtools", "LaplacesDemon","mvtnorm"),
-                                 .combine='comb', .multicombine=TRUE, .init=list(c(), c(), c())) %dopar% {
+                                 .combine='comb', .multicombine=TRUE, .init=list(c(), c(), c(), c())) %dopar% {
                                    mcmc <- bmcd_MCMC_list[[index]]
                                    G <- mcmc$G
                                    prior_G <- priors[[index]]
