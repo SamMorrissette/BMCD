@@ -155,7 +155,7 @@ MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G, parallel
                                    for (i in 1:n) {
                                      total <- 0
                                      for (j in 1:G) {
-                                       total <- total + eps_star[j] * dmvnorm(X[i,], mu_star[,j], T_star[,,j])
+                                       total <- total + eps_star[j] * dmvnorm(mcmc$X_list[[iter]][i,], mu_star[,j], T_star[,,j])
                                      }
                                      xs <- c(xs, total)
                                    }
