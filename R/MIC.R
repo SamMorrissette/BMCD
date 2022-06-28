@@ -72,6 +72,7 @@ MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G, parallel
       num_params <- G*(p+p+1)#G*((p*p - p) / 2  + (2*p) + 1)
 
       aics_iter <- rep(NA, nrow(mcmc$eps_list))
+      bics_iter <- rep(NA, nrow(mcmc$eps_list))
 
       D <- rep(NA, nrow(mcmc$eps_list))
       for (iter in 1:nrow(mcmc$eps_list)) {
@@ -85,6 +86,7 @@ MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G, parallel
         }
         D[iter] <- -2 * sum(log(xs))
         aics_iter[iter] <- 2*num_params - (2*sum(log(xs)))
+        bics_iter[iter] <- (log(n) * num_params) - 2 * (sum(log(xs)))
       }
       xs <- c()
       for (i in 1:n) {
@@ -102,6 +104,7 @@ MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G, parallel
 
       print(which.min(aics_iter))
       aics[index] <- min(aics_iter)
+      bics[index] <- min(bics_iter)
       optim_params[[index]] <- list(X = mcmc$X_list[[which.min(aics_iter)]],
                                     eps = mcmc$eps_list[which.min(aics_iter), ],
                                   mu = mcmc$mu_list[[which.min(aics_iter)]],
@@ -140,7 +143,7 @@ MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G, parallel
                                      for (i in 1:n) {
                                        total <- 0
                                        for (j in 1:G) {
-                                         total <- total + mcmc$eps_list[iter, j] * dmvnorm(X[i,], mcmc$mu_list[[iter]][,j], mcmc$T_list[[iter]][,,j])
+                                         total <- total + mcmc$eps_list[iter, j] * dmvnorm(mcmc$X_list[[iter]][i,], mcmc$mu_list[[iter]][,j], mcmc$T_list[[iter]][,,j])
                                        }
                                        xs <- c(xs, total)
                                      }
