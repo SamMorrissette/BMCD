@@ -87,18 +87,6 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
       }
     }
 
-    # Transform X using Procrustean Similarity Transformation -----------------
-
-    ## The following code uses the notation used in the main paper
-
-    vec_1 <- matrix(1, nrow = n, ncol = 1)
-    J = diag(1, nrow = n, ncol = n) - ((1/n) * (vec_1 %*% t(vec_1)))
-    C = t(X_star) %*% J %*% X_list[[t]]
-    svd_C = svd(C)
-    mat_T = svd_C$v %*% t(svd_C$u)
-    little_t = (1/n) * (t(X_star - X_list[[t]] %*% mat_T) %*% vec_1)
-    X_list[[t]] = (X_list[[t]] %*% mat_T) + (vec_1 %*% t(little_t))
-
 
     # Generate sigma_sq -------------------------------------------------------
 
@@ -135,28 +123,32 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
 
     # Generate mu and T for each component ------------------------------------
 
+    S_j <- t(X_list[[t]]) %*% X_list[[t]]
+    common_T <- LaplacesDemon::rinvwishart(priors$prior_alpha + n, as.matrix(priors$prior_Bj[,,1] + (S_j)) / G)
     for (k in 1:G) {
-      if (n_list[t-1, k] > 0) {
-        x_j <- X_list[[t]][which(class_list[t-1, ] == k), ]
-        x_j <- matrix(x_j, nrow = n_list[t-1, k])
-        centered_x <- sweep(x_j, 2, mu_list[[t-1]][, k])
-        S_j <- 0
-        for (q in 1:nrow(centered_x)) {
-          S_j = S_j + (centered_x[q, ] %*% t(centered_x[q,]))
-        }
-      } else {
-        S_j <- 0
-      }
+       if (n_list[t-1, k] > 0) {
+         x_j <- X_list[[t]][which(class_list[t-1, ] == k), ]
+         x_j <- matrix(x_j, nrow = n_list[t-1, k])
+      #   centered_x <- sweep(x_j, 2, mu_list[[t-1]][, k])
+      #   S_j <- 0
+      #   for (q in 1:nrow(centered_x)) {
+      #     S_j = S_j + (centered_x[q, ] %*% t(centered_x[q,]))
+      #   }
+       } #else {
+      #   S_j <- 0
+      # }
+      #
+      # T_list_pst <- as.matrix(priors$prior_Bj[,,k] + (S_j))
+      #
+      # tryCatch({
+      #   T_list[[t]][,,k] <<- LaplacesDemon::rinvwishart(priors$prior_alpha + (n_list[t-1, k]), T_list_pst)
+      # }, error = function(e) {
+      #   diag(T_list_pst) <- diag(T_list_pst) + 1e-05
+      #   T_list[[t]][,,k] <<- LaplacesDemon::rinvwishart(priors$prior_alpha + (n_list[t-1, k]), T_list_pst)
+      # }
+      # )
 
-      T_list_pst <- as.matrix(priors$prior_Bj[,,k] + (S_j/2))
-      #T_list[[t]][,,k] <- LaplacesDemon::rinvwishart(priors$prior_alpha + (n_list[t-1, k] / 2), T_list_pst)
-      tryCatch({
-        T_list[[t]][,,k] <<- LaplacesDemon::rinvwishart(priors$prior_alpha + (n_list[t-1, k] / 2), T_list_pst)
-      }, error = function(e) {
-        diag(T_list_pst) <- diag(T_list_pst) + 1e-05
-        T_list[[t]][,,k] <<- LaplacesDemon::rinvwishart(priors$prior_alpha + (n_list[t-1, k] / 2), T_list_pst)
-      }
-      )
+      T_list[[t]][,,k] <- common_T
 
       if (n_list[t-1, k] > 1) {
         x_bar_j <- colMeans(x_j)
@@ -176,6 +168,34 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
         mu_list[[t]][,k] = rnorm(1, mean = pst_mean, sd = sqrt(pst_var))
       }
     }
+
+    # Calculate cluster probabilities -----------------------------------------
+
+    for (a in 1:n) {
+      denom = 0
+      for (w in 1:G) {
+        denom = denom + (eps_list[t, w] *
+          mvtnorm::dmvnorm(X_list[[t]][a, , drop = FALSE],
+                           mean = mu_list[[t]][, w, drop = FALSE],
+                           sigma = matrix(T_list[[t]][,,w, drop = FALSE], ncol = p, nrow = p)))
+      }
+      for (k in 1:G) {
+        z_list[[t]][a, k] = eps_list[t, k] *
+          mvtnorm::dmvnorm(X_list[[t]][a, , drop = FALSE],
+                           mean = mu_list[[t]][, k, drop = FALSE],
+                           sigma = matrix(T_list[[t]][,,k, drop = FALSE], ncol = p, nrow = p)) / denom
+      }
+    }
+
+
+    # Cluster assignment ------------------------------------------------------
+
+    clust <- apply(z_list[[t]], 1, which.max)
+    for (k in 1:G) {
+      n_list[t, k] <- sum(clust == k)
+    }
+    class_list[t, ] <- clust
+
 
 
     # Relabeling procedure ----------------------------------------------------
@@ -287,34 +307,17 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
       }
     }
 
+    # Transform X using Procrustean Similarity Transformation -----------------
 
+    ## The following code uses the notation used in the main paper
 
-    # Calculate cluster probabilities -----------------------------------------
-
-    for (a in 1:n) {
-      denom = 0
-      for (w in 1:G) {
-        denom = denom + #(eps_list[t, w] *
-                           mvtnorm::dmvnorm(X_list[[t]][a, , drop = FALSE],
-                                            mean = mu_list[[t]][, w, drop = FALSE],
-                                            sigma = matrix(T_list[[t]][,,w, drop = FALSE], ncol = p, nrow = p))#)
-      }
-      for (k in 1:G) {
-        z_list[[t]][a, k] = #eps_list[t, k] *
-          mvtnorm::dmvnorm(X_list[[t]][a, , drop = FALSE],
-                           mean = mu_list[[t]][, k, drop = FALSE],
-                           sigma = matrix(T_list[[t]][,,k, drop = FALSE], ncol = p, nrow = p)) / denom
-      }
-    }
-
-
-    # Cluster assignment ------------------------------------------------------
-
-    clust <- apply(z_list[[t]], 1, which.max)
-    for (k in 1:G) {
-      n_list[t, k] <- sum(clust == k)
-    }
-    class_list[t, ] <- clust
+    vec_1 <- matrix(1, nrow = n, ncol = 1)
+    J = diag(1, nrow = n, ncol = n) - ((1/n) * (vec_1 %*% t(vec_1)))
+    C = t(X_star) %*% J %*% X_list[[t]]
+    svd_C = svd(C)
+    mat_T = svd_C$v %*% t(svd_C$u)
+    little_t = (1/n) * (t(X_star - X_list[[t]] %*% mat_T) %*% vec_1)
+    X_list[[t]] = (X_list[[t]] %*% mat_T) + (vec_1 %*% t(little_t))
   }
 
   # Discard burn-in ---------------------------------------------------------
