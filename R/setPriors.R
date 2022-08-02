@@ -1,4 +1,4 @@
-setPriors <- function(distances, X_est, mclust_result, p, G, n, m) {
+setPriors <- function(distances, X_est, mclust_result, p, G, n, m, model_type) {
   # sigma_sq (inverse-gamma prior)
   ########### Not sure why I'm using these values as priors ###############
   SSR_init <- sum((as.matrix(dist(X_est)) - distances)^2) / 2
@@ -8,20 +8,34 @@ setPriors <- function(distances, X_est, mclust_result, p, G, n, m) {
 
   # mu_j (normal prior)
 
-  ## Use the means of the estimated object configuration
-  prior_alpha <- p+2
-  #prior_mean <- mclust_result$parameters$mean
-  #prior_Bj <- (prior_alpha - p - 1) * mclust_result$parameters$variance$sigma
+  if (model_type == "Unrestricted") {
+    ## Use the means of the estimated object configuration
+    prior_alpha <- p+2
+    #prior_mean <- mclust_result$parameters$mean
+    #prior_Bj <- (prior_alpha - p - 1) * mclust_result$parameters$variance$sigma
 
-  prior_mean <- matrix(NA, nrow = p, ncol = G)
-  prior_Bj <- array(NA, c(p,p,G))
-  for (i in 1:G) {
-    prior_mean[,i] <- colMeans(X_est)
-    prior_Bj[,,i] <- ((prior_alpha - p - 1) * cov(X_est)) / G #Changed the prior here
+    prior_mean <- matrix(NA, nrow = p, ncol = G)
+    prior_Bj <- array(NA, c(p,p,G))
+    for (i in 1:G) {
+      prior_mean[,i] <- colMeans(X_est)
+      prior_Bj[,,i] <- ((prior_alpha - p - 1) * cov(X_est)) / G #Changed the prior here
+    }
+    out <- list(prior_shape = prior_shape, prior_scale = prior_scale,
+                prior_mean = prior_mean,
+                prior_alpha = prior_alpha, prior_Bj = prior_Bj)
+  } else if (model_type == "Diagonal") {
+    prior_mean <- matrix(NA, nrow = p, ncol = G)
+    prior_IG_alpha <- 1
+    prior_IG_beta <- 1
+    for (i in 1:G) {
+      prior_mean[,i] <- colMeans(X_est)
+    }
+    out <- list(prior_shape = prior_shape, prior_scale = prior_scale,
+                prior_mean = prior_mean,
+                prior_IG_alpha = prior_IG_alpha, prior_IG_beta = prior_IG_beta)
   }
 
-
-
+  return(out)
 
   # for (i in 1:G) {
   #   index_vec <- class_mat == i
@@ -45,9 +59,6 @@ setPriors <- function(distances, X_est, mclust_result, p, G, n, m) {
   #     prior_Bj[,,i] <- (prior_alpha - p - 1) * cov(X_est) ############################################# ASK
   #   }
   # }
-  list(prior_shape = prior_shape, prior_scale = prior_scale,
-       prior_mean = prior_mean,
-       prior_alpha = prior_alpha, prior_Bj = prior_Bj)
 }
 
 

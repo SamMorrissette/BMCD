@@ -5,7 +5,7 @@
 #' @export
 
 bmcd <- function(distances, bmds_object, p, min_G, max_G, bmcd_iter, bmcd_burn, labelswitch_iter,
-                 parallel = FALSE, num_cores = 0) {
+                 parallel = FALSE, num_cores = 0, model_type = "Unrestricted") {
 
   n <- nrow(distances)
   m <- n*(n-1)/2
@@ -42,14 +42,14 @@ bmcd <- function(distances, bmds_object, p, min_G, max_G, bmcd_iter, bmcd_burn, 
 
       # Set priors --------------------------------------------------------------
 
-      priors[[ind]] <- setPriors(distances, X_est, mclust_out, p, G, n, m)
+      priors[[ind]] <- setPriors(distances, X_est, mclust_out, p, G, n, m, model_type)
 
       # Initialize MCMC lists ---------------------------------------------------
       init_params <- list(sigma_sq, eps_init, mu_init, T_init, z_init)
       mcmc_list <- initLists(init_params, X_est, mclust_out$classification, p, G, n, bmcd_iter)
 
       # Run MCMC ----------------------------------------------------------------
-      out[[ind]] <- bmcdMCMC(distances, mcmc_list, priors[[ind]], p, G, n, m, bmcd_iter, bmcd_burn, labelswitch_iter)
+      out[[ind]] <- bmcdMCMC(distances, mcmc_list, priors[[ind]], p, G, n, m, bmcd_iter, bmcd_burn, labelswitch_iter, model_type)
       out[[ind]]$G <- G
       ind <- ind + 1
     }

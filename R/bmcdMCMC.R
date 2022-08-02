@@ -1,11 +1,12 @@
 #' @importFrom gtools rdirichlet
 #' @importFrom LaplacesDemon rinvwishart
+#' @importFrom LaplacesDemon rinvgamma
 #' @importFrom mvtnorm rmvnorm
 #' @importFrom RcppHungarian HungarianSolver
 #' @importFrom combinat permn
 
 
-bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_burn, labelswitch_iter) {
+bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_burn, labelswitch_iter, model_type) {
 
   # Unpack list
   X_list = mcmc_list$X_list
@@ -122,33 +123,68 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
     eps_list[t, ] <- gtools::rdirichlet(1, n_list[t-1,] + 1)
 
     # Generate mu and T for each component ------------------------------------
+    if (model_type == "Diagonal") {
+      pst_IG_alpha <- rep(NA, p)
+      pst_IG_beta <- rep(NA, p)
+      for (k in 1:G) {
+        if (n_list[t-1, k] > 0) {
+          x_j <- X_list[[t]][which(class_list[t-1, ] == k), ]
+          x_j <- matrix(x_j, nrow = n_list[t-1, k])
+          for (d in 1:p) {
+            pst_IG_alpha[d] <- priors$prior_IG_alpha + (n_list[t-1, k] / 2)
+            pst_IG_beta[d] <- priors$prior_IG_beta + (sum((x_j[, d] - mu_list[[t-1]][d,k])^2) / 2)
+          }
+          T_list[[t]][,,k] <- diag(LaplacesDemon::rinvgamma(p, pst_IG_alpha, pst_IG_beta))
+        } else {
+          T_list[[t]][,,k] <- diag(LaplacesDemon::rinvgamma(p, priors$prior_IG_alpha, priors$prior_IG_beta))
+        }
 
-    S_j <- t(X_list[[t]]) %*% X_list[[t]]
-    common_T <- LaplacesDemon::rinvwishart(priors$prior_alpha + n, as.matrix(priors$prior_Bj[,,1] + (S_j)) / G)
-    for (k in 1:G) {
-       if (n_list[t-1, k] > 0) {
-         x_j <- X_list[[t]][which(class_list[t-1, ] == k), ]
-         x_j <- matrix(x_j, nrow = n_list[t-1, k])
-      #   centered_x <- sweep(x_j, 2, mu_list[[t-1]][, k])
-      #   S_j <- 0
-      #   for (q in 1:nrow(centered_x)) {
-      #     S_j = S_j + (centered_x[q, ] %*% t(centered_x[q,]))
-      #   }
-       } #else {
-      #   S_j <- 0
-      # }
-      #
-      # T_list_pst <- as.matrix(priors$prior_Bj[,,k] + (S_j))
-      #
-      # tryCatch({
-      #   T_list[[t]][,,k] <<- LaplacesDemon::rinvwishart(priors$prior_alpha + (n_list[t-1, k]), T_list_pst)
-      # }, error = function(e) {
-      #   diag(T_list_pst) <- diag(T_list_pst) + 1e-05
-      #   T_list[[t]][,,k] <<- LaplacesDemon::rinvwishart(priors$prior_alpha + (n_list[t-1, k]), T_list_pst)
-      # }
-      # )
+        #Generating mu
+        if (n_list[t-1, k] > 1) {
+          x_bar_j <- colMeans(x_j)
+        } else if (n_list[t-1, k] == 1) {
+          x_bar_j <- x_j
+        } else if (n_list[t-1, k] == 0) {
+          x_bar_j <- 0
+        }
 
-      T_list[[t]][,,k] <- common_T
+        pst_mean = (n_list[t-1, k]  * x_bar_j + priors$prior_mean[, k]) / (n_list[t-1, k] + 1)
+        pst_var =  T_list[[t]][,,k] / (n_list[t-1, k]  + 1)
+
+        if (p > 1) {
+          mu_list[[t]][,k] = mvtnorm::rmvnorm(1, mean = pst_mean, sigma = pst_var)
+        } else {
+          mu_list[[t]][,k] = rnorm(1, mean = pst_mean, sd = sqrt(pst_var))
+        }
+      }
+    } else if (model_type == "Unrestricted") {
+      S_j <- t(X_list[[t]]) %*% X_list[[t]]
+      common_T <- LaplacesDemon::rinvwishart(priors$prior_alpha + n, as.matrix(priors$prior_Bj[,,1] + (S_j)) / G)
+      for (k in 1:G) {
+        if (n_list[t-1, k] > 0) {
+          x_j <- X_list[[t]][which(class_list[t-1, ] == k), ]
+          x_j <- matrix(x_j, nrow = n_list[t-1, k])
+          #   centered_x <- sweep(x_j, 2, mu_list[[t-1]][, k])
+          #   S_j <- 0
+          #   for (q in 1:nrow(centered_x)) {
+          #     S_j = S_j + (centered_x[q, ] %*% t(centered_x[q,]))
+          #   }
+        } #else {
+        #   S_j <- 0
+        # }
+        #
+        # T_list_pst <- as.matrix(priors$prior_Bj[,,k] + (S_j))
+        #
+        # tryCatch({
+        #   T_list[[t]][,,k] <<- LaplacesDemon::rinvwishart(priors$prior_alpha + (n_list[t-1, k]), T_list_pst)
+        # }, error = function(e) {
+        #   diag(T_list_pst) <- diag(T_list_pst) + 1e-05
+        #   T_list[[t]][,,k] <<- LaplacesDemon::rinvwishart(priors$prior_alpha + (n_list[t-1, k]), T_list_pst)
+        # }
+        # )
+
+        T_list[[t]][,,k] <- common_T
+
 
       if (n_list[t-1, k] > 1) {
         x_bar_j <- colMeans(x_j)
@@ -159,13 +195,13 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
       }
 
       pst_mean = (n_list[t-1, k]  * x_bar_j + priors$prior_mean[, k]) / (n_list[t-1, k] + 1)
-
       pst_var =  T_list[[t]][,,k] / (n_list[t-1, k]  + 1)
 
       if (p > 1) {
         mu_list[[t]][,k] = mvtnorm::rmvnorm(1, mean = pst_mean, sigma = pst_var)
       } else {
         mu_list[[t]][,k] = rnorm(1, mean = pst_mean, sd = sqrt(pst_var))
+        }
       }
     }
 
