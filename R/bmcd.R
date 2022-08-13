@@ -82,7 +82,7 @@ bmcd <- function(distances, bmds_object, p, min_G, max_G, bmcd_iter, bmcd_burn, 
       mcmc_list <- initLists(init_params, X_est, mclust_out$classification, p, G, n, bmcd_iter)
 
       # Run MCMC ----------------------------------------------------------------
-      out <- bmcdMCMC(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_burn, labelswitch_iter)
+      out <- bmcdMCMC(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_burn, labelswitch_iter, model_type)
       out$G <- G
       list(out, priors)
     }
