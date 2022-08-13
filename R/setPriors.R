@@ -33,6 +33,18 @@ setPriors <- function(distances, X_est, mclust_result, p, G, n, m, model_type) {
     out <- list(prior_shape = prior_shape, prior_scale = prior_scale,
                 prior_mean = prior_mean,
                 prior_IG_alpha = prior_IG_alpha, prior_IG_beta = prior_IG_beta)
+  } else if (model_type == "Equal Diagonal") {
+
+  } else if (model_type == "Equal Spherical" || model_type == "Unequal Spherical") {
+    prior_mean <- matrix(NA, nrow = p, ncol = G)
+    prior_IG_alpha <- 1
+    prior_IG_beta <- 1
+    for (i in 1:G) {
+      prior_mean[,i] <- colMeans(X_est)
+    }
+    out <- list(prior_shape = prior_shape, prior_scale = prior_scale,
+                prior_mean = prior_mean,
+                prior_IG_alpha = prior_IG_alpha, prior_IG_beta = prior_IG_beta)
   }
 
   return(out)

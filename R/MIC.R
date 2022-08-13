@@ -5,7 +5,7 @@
 #' @importFrom doParallel registerDoParallel
 #' @export
 
-MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G, parallel = FALSE, num_cores = 0) {
+MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G, parallel = FALSE, num_cores = 0, model_type) {
   if(parallel == TRUE & num_cores > 0) {
     doParallel::registerDoParallel(cores=num_cores)
   }
@@ -69,7 +69,15 @@ MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G, parallel
       SSR <- sum((as.matrix(dist(X)) - distances)^2) / 2
 
 
-      num_params <- G*(p+p+1)#G*((p*p - p) / 2  + (2*p) + 1)
+      if (model_type == "Unrestricted") {
+        num_params <- G*((p*p - p) / 2  + (2*p) + 1) #G*(p+p+1)
+      } else if (model_type == "Diagonal") {
+        num_params <- p * G
+      } else if (model_type == "Unequal Spherical") {
+        num_params <- G
+      } else if (model_type == "Equal Spherical")  {
+        num_params <- 1
+      }
 
       aics_iter <- rep(NA, nrow(mcmc$eps_list))
       bics_iter <- rep(NA, nrow(mcmc$eps_list))
@@ -131,8 +139,16 @@ MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G, parallel
                                    X <- Reduce("+", mcmc$X_list) / length(mcmc$X_list)
                                    SSR <- sum((as.matrix(dist(X)) - distances)^2) / 2
 
+                                   if (model_type == "Unrestricted") {
+                                     num_params <- G*((p*p - p) / 2  + (2*p) + 1) #G*(p+p+1)
+                                   } else if (model_type == "Diagonal") {
+                                     num_params <- p * G
+                                   } else if (model_type == "Unequal Spherical") {
+                                     num_params <- G
+                                   } else if (model_type == "Equal Spherical")  {
+                                     num_params <- 1
+                                   }
 
-                                   num_params <- G*(p+p+1)#G*((p*p - p) / 2  + (2*p) + 1)
 
                                    aics_iter <- rep(NA, nrow(mcmc$eps_list))
                                    bics_iter <- rep(NA, nrow(mcmc$eps_list))

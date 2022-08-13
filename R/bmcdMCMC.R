@@ -35,7 +35,7 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
 
   for (t in 2:bmcd_iter) {
     # Iteration printing  -----------------------------------------------------
-    if (t %% 100 == 0) {
+    if (t %% 10 == 0) {
       print(t)
     }
 
@@ -157,33 +157,122 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
           mu_list[[t]][,k] = rnorm(1, mean = pst_mean, sd = sqrt(pst_var))
         }
       }
-    } else if (model_type == "Unrestricted") {
-      S_j <- t(X_list[[t]]) %*% X_list[[t]]
-      common_T <- LaplacesDemon::rinvwishart(priors$prior_alpha + n, as.matrix(priors$prior_Bj[,,1] + (S_j)) / G)
+    } else if (model_type == "Equal Spherical") {
+      T2 <- 0
+      T3 <- 0
       for (k in 1:G) {
         if (n_list[t-1, k] > 0) {
           x_j <- X_list[[t]][which(class_list[t-1, ] == k), ]
           x_j <- matrix(x_j, nrow = n_list[t-1, k])
-          #   centered_x <- sweep(x_j, 2, mu_list[[t-1]][, k])
-          #   S_j <- 0
-          #   for (q in 1:nrow(centered_x)) {
-          #     S_j = S_j + (centered_x[q, ] %*% t(centered_x[q,]))
-          #   }
-        } #else {
-        #   S_j <- 0
-        # }
-        #
-        # T_list_pst <- as.matrix(priors$prior_Bj[,,k] + (S_j))
-        #
-        # tryCatch({
-        #   T_list[[t]][,,k] <<- LaplacesDemon::rinvwishart(priors$prior_alpha + (n_list[t-1, k]), T_list_pst)
-        # }, error = function(e) {
-        #   diag(T_list_pst) <- diag(T_list_pst) + 1e-05
-        #   T_list[[t]][,,k] <<- LaplacesDemon::rinvwishart(priors$prior_alpha + (n_list[t-1, k]), T_list_pst)
-        # }
-        # )
+        } else {
+          x_j <- matrix(0)
+        }
 
-        T_list[[t]][,,k] <- common_T
+        if (n_list[t-1, k] > 1) {
+          x_bar_j <- colMeans(x_j)
+        } else if (n_list[t-1, k] == 1) {
+          x_bar_j <- c(x_j)
+        } else if (n_list[t-1, k] == 0) {
+          x_bar_j <- 0
+        }
+        centered_x <- sweep(x_j, 2, x_bar_j)
+        #centered_x <- sweep(X_list[[t]], 2, colMeans(X_list[[t]]))
+        T2 <- T2 + sum(diag(centered_x %*% t(centered_x)))
+        T3 <- T3 + ((n_list[t-1, k] / (n_list[t-1, k] + 1)) * (t(x_bar_j) %*% x_bar_j))
+      }
+      pst_IG_alpha <- (n + priors$prior_IG_alpha) / 2
+      pst_IG_beta <- (priors$prior_IG_beta + T2 + T3) / 2
+      # print(paste(T2, T3))
+      # print(paste(pst_IG_alpha, pst_IG_beta))
+      lambda <- LaplacesDemon::rinvgamma(1, pst_IG_alpha, pst_IG_beta) / G # Not sure but I think this is correct!!!!
+      for (k in 1:G) {
+        T_list[[t]][,,k] <- diag(rep(lambda, p))
+        if (n_list[t-1, k] > 0) {
+          x_j <- X_list[[t]][which(class_list[t-1, ] == k), ]
+          x_j <- matrix(x_j, nrow = n_list[t-1, k])
+        } else {
+          x_j <- matrix(0)
+        }
+
+        #Generating mu
+        if (n_list[t-1, k] > 1) {
+          x_bar_j <- colMeans(x_j)
+        } else if (n_list[t-1, k] == 1) {
+          x_bar_j <- x_j
+        } else if (n_list[t-1, k] == 0) {
+          x_bar_j <- 0
+        }
+
+        pst_mean = (n_list[t-1, k]  * x_bar_j + priors$prior_mean[, k]) / (n_list[t-1, k] + 1)
+        pst_var =  T_list[[t]][,,k] / (n_list[t-1, k]  + 1)
+
+        if (p > 1) {
+          mu_list[[t]][,k] = mvtnorm::rmvnorm(1, mean = pst_mean, sigma = pst_var)
+        } else {
+          mu_list[[t]][,k] = rnorm(1, mean = pst_mean, sd = sqrt(pst_var))
+        }
+      }
+    } else if (model_type == "Unequal Spherical") {
+      for (k in 1:G) {
+        if (n_list[t-1, k] > 0) {
+          x_j <- X_list[[t]][which(class_list[t-1, ] == k), ]
+          x_j <- matrix(x_j, nrow = n_list[t-1, k])
+        } else {
+          x_j <- matrix(0)
+        }
+
+        #Generating mu
+        if (n_list[t-1, k] > 1) {
+          x_bar_j <- colMeans(x_j)
+        } else if (n_list[t-1, k] == 1) {
+          x_bar_j <- x_j
+        } else if (n_list[t-1, k] == 0) {
+          x_bar_j <- 0
+        }
+        centered_x <- sweep(x_j, 2, x_bar_j)
+        T2 <- sum(diag(centered_x %*% t(centered_x)))
+        T3 <- ((n_list[t-1, k] / (n_list[t-1, k] + 1)) * (t(x_bar_j) %*% x_bar_j))
+        pst_IG_alpha <- (priors$prior_IG_alpha + (n_list[t-1,k] * p)) / 2
+        pst_IG_beta <- (priors$prior_IG_beta + T2 + T3) / 2
+        lambda_k <- LaplacesDemon::rinvgamma(1, pst_IG_alpha, pst_IG_beta)
+        T_list[[t]][,,k] <- diag(rep(lambda_k, p))
+
+        pst_mean = (n_list[t-1, k]  * x_bar_j + priors$prior_mean[, k]) / (n_list[t-1, k] + 1)
+        pst_var =  T_list[[t]][,,k] / (n_list[t-1, k]  + 1)
+
+        if (p > 1) {
+          mu_list[[t]][,k] = mvtnorm::rmvnorm(1, mean = pst_mean, sigma = pst_var)
+        } else {
+          mu_list[[t]][,k] = rnorm(1, mean = pst_mean, sd = sqrt(pst_var))
+        }
+      }
+    } else if (model_type == "Unrestricted") {
+      # S_j <- t(X_list[[t]]) %*% X_list[[t]]
+      # common_T <- LaplacesDemon::rinvwishart(priors$prior_alpha + n, as.matrix(priors$prior_Bj[,,1] + (S_j)) / G)
+      for (k in 1:G) {
+        if (n_list[t-1, k] > 0) {
+          x_j <- X_list[[t]][which(class_list[t-1, ] == k), ]
+          x_j <- matrix(x_j, nrow = n_list[t-1, k])
+          centered_x <- sweep(x_j, 2, mu_list[[t-1]][, k])
+          S_j <- 0
+            for (q in 1:nrow(centered_x)) {
+              S_j = S_j + (centered_x[q, ] %*% t(centered_x[q,]))
+            }
+        } else {
+          S_j <- 0
+        }
+
+        T_list_pst <- as.matrix(priors$prior_Bj[,,k] + (S_j))
+
+        tryCatch({
+          T_list[[t]][,,k] <<- LaplacesDemon::rinvwishart(priors$prior_alpha + (n_list[t-1, k]), T_list_pst)
+        }, error = function(e) {
+          diag(T_list_pst) <- diag(T_list_pst) + 1e-05
+          T_list[[t]][,,k] <<- LaplacesDemon::rinvwishart(priors$prior_alpha + (n_list[t-1, k]), T_list_pst)
+        }
+        )
+
+        #T_list[[t]][,,k] <- common_T
 
 
       if (n_list[t-1, k] > 1) {
