@@ -75,7 +75,7 @@ bmcd <- function(distances, bmds_object, p, min_G, max_G, bmcd_iter, bmcd_burn, 
 
       # Set priors --------------------------------------------------------------
 
-      priors <- setPriors(distances, X_est, mclust_out, p, G, n, m)
+      priors <- setPriors(distances, X_est, mclust_out, p, G, n, m, model_type)
 
       # Initialize MCMC lists ---------------------------------------------------
       init_params <- list(sigma_sq, eps_init, mu_init, T_init, z_init)
