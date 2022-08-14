@@ -143,14 +143,19 @@ MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G, parallel
                                    X <- Reduce("+", mcmc$X_list) / length(mcmc$X_list)
                                    SSR <- sum((as.matrix(dist(X)) - distances)^2) / 2
 
-                                   if (model_type == "Unrestricted") {
-                                     num_params <- G*((p*p - p) / 2  + (2*p) + 1) #G*(p+p+1)
-                                   } else if (model_type == "Diagonal") {
-                                     num_params <- p * G
+                                   nu <- (G - 1) + (G*p)
+                                   if (model_type == "Unequal Unrestricted") {
+                                     num_params <- nu + G*(p*(p+1) / 2)
+                                   } else if (model_type == "Equal Unrestricted") {
+                                     num_params <- nu + (p*(p+1) / 2)
+                                   } else if (model_type == "Unequal Diagonal") {
+                                     num_params <- nu + (G * p)
+                                   } else if (model_type == "Equal Diagonal") {
+                                     num_params <- nu + p
                                    } else if (model_type == "Unequal Spherical") {
-                                     num_params <- G
+                                     num_params <- nu + G
                                    } else if (model_type == "Equal Spherical")  {
-                                     num_params <- 1
+                                     num_params <- nu + 1
                                    }
 
 
