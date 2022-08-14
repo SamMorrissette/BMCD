@@ -8,7 +8,7 @@ setPriors <- function(distances, X_est, mclust_result, p, G, n, m, model_type) {
 
   # mu_j (normal prior)
 
-  if (model_type == "Unrestricted") {
+  if (model_type == "Unequal Unrestricted" || model_type == "Equal Unrestricted") {
     ## Use the means of the estimated object configuration
     prior_alpha <- p+2
     #prior_mean <- mclust_result$parameters$mean
@@ -23,7 +23,7 @@ setPriors <- function(distances, X_est, mclust_result, p, G, n, m, model_type) {
     out <- list(prior_shape = prior_shape, prior_scale = prior_scale,
                 prior_mean = prior_mean,
                 prior_alpha = prior_alpha, prior_Bj = prior_Bj)
-  } else if (model_type == "Diagonal") {
+  } else if (model_type == "Unequal Diagonal" || model_type == "Equal Diagonal") {
     prior_mean <- matrix(NA, nrow = p, ncol = G)
     prior_IG_alpha <- 1
     prior_IG_beta <- 1
@@ -33,8 +33,6 @@ setPriors <- function(distances, X_est, mclust_result, p, G, n, m, model_type) {
     out <- list(prior_shape = prior_shape, prior_scale = prior_scale,
                 prior_mean = prior_mean,
                 prior_IG_alpha = prior_IG_alpha, prior_IG_beta = prior_IG_beta)
-  } else if (model_type == "Equal Diagonal") {
-
   } else if (model_type == "Equal Spherical" || model_type == "Unequal Spherical") {
     prior_mean <- matrix(NA, nrow = p, ncol = G)
     prior_IG_alpha <- 1

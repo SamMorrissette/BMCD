@@ -5,7 +5,7 @@
 #' @export
 
 bmcd <- function(distances, bmds_object, p, min_G, max_G, bmcd_iter, bmcd_burn, labelswitch_iter,
-                 parallel = FALSE, num_cores = 0, model_type = "Unrestricted") {
+                 parallel = FALSE, num_cores = 0, model_type = "Unequal Unrestricted") {
 
   n <- nrow(distances)
   m <- n*(n-1)/2
