@@ -35,7 +35,7 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
 
   for (t in 2:bmcd_iter) {
     # Iteration printing  -----------------------------------------------------
-    if (t %% 10 == 0) {
+    if (t %% 100 == 0) {
       print(t)
     }
 
@@ -359,7 +359,6 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
 
     } else if (t > labelswitch_iter) {
       r <- t - labelswitch_iter
-
       ## Testing
       eps_theta <- rep(NA, G)
 
@@ -392,14 +391,12 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
       for (comp in 1:G) {
         T_theta[,,comp] <- init_theta[[comp]][[3]]
       }
-
       test_mat3 <- matrix(NA, nrow = G, ncol = G)
       for (comp in 1:G) {
         test_mat3[comp, ] <- apply(T_theta, 3, function(x) {
-          sum((T_list[[labelswitch_iter+r]][,,comp] - x)^2 / init_s[[comp]][[3]])
+          sum((T_list[[labelswitch_iter+r]][,,comp] - x)^2 / init_s[[comp]][[3]], na.rm = TRUE)
         }, simplify = TRUE)
       }
-
 
       ## Assignment problem from here
       assignment_solution <- HungarianSolver(test_mat+test_mat2+test_mat3)
