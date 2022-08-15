@@ -213,15 +213,18 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
         } else if (n_list[t-1, k] == 0) {
           x_bar_j <- 0
         }
-
+        print(paste("x_j", x_j))
+        print(paste("x_bar_j", x_bar_j))
         pst_mean = (n_list[t-1, k]  * x_bar_j + priors$prior_mean[, k]) / (n_list[t-1, k] + 1)
         pst_var =  T_list[[t]][,,k] / (n_list[t-1, k]  + 1)
-
+        print(paste("pst_mean", pst_mean))
+        print(paste("pst_var", pst_var))
         if (p > 1) {
           mu_list[[t]][,k] = mvtnorm::rmvnorm(1, mean = pst_mean, sigma = pst_var)
         } else {
           mu_list[[t]][,k] = rnorm(1, mean = pst_mean, sd = sqrt(pst_var))
         }
+        print("end")
       }
     } else if (model_type == "Equal Spherical") {
       T2 <- 0
