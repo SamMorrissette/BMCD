@@ -40,10 +40,8 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
     }
 
     # Generating X using random walk M-H algorithm ----------------------------
-    print("1")
     for (i in 1:n) {
       j <- class_list[t-1, i]
-
 
       x_old <- X_list[[t-1]][i,]
       x_new <- rnorm(p, mean = x_old, sd = sqrt(x_prop_var))
@@ -87,7 +85,7 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
         X_list[[t]][i, ] <- x_old
       }
     }
-    print("2")
+
 
     # Generate sigma_sq -------------------------------------------------------
 
@@ -99,7 +97,7 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
     while (sigma_sq_new < 0) {
       sigma_sq_new <- rnorm(1, mean = sigma_sq_old, sd = sqrt(sigma_prop_variance)) # Restricted to be positive
     }
-    print("3")
+
 
     ## Third term
     norm_old <- delta / sqrt(sigma_sq_old)
@@ -116,12 +114,12 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
     } else {
       sigma_sq_list[t] <- sigma_sq_old
     }
-    print("4")
+
 
     # Generate epsilon --------------------------------------------------------
 
     eps_list[t, ] <- gtools::rdirichlet(1, n_list[t-1,] + 1)
-    print("5")
+
     # Generate mu and T for each component ------------------------------------
     if (model_type == "Unequal Diagonal") {
       for (k in 1:G) {
@@ -162,8 +160,6 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
         }
       }
     } else if (model_type == "Equal Diagonal") {
-      print("Made it here!")
-      print(t)
       T3 <- W_k <- matrix(0, ncol = p, nrow = p)
       for (k in 1:G) {
         if (n_list[t-1, k] > 0) {
@@ -187,14 +183,9 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
 
         T3 <- T3 + ((n_list[t-1, k] / (n_list[t-1, k] + 1)) * (t(x_bar_j) %*% x_bar_j))
       }
-      print(W_k)
-      print(T3)
-      pst_IG_alpha <- rep(priors$prior_IG_alpha + (n * p / 2), p)
-      pst_IG_beta <- diag((diag(p) * priors$prior_IG_beta) + W_k + T3)
-      print(pst_IG_alpha)
-      print(pst_IG_beta)
+      pst_IG_alpha <- rep(priors$prior_IG_alpha + (n / 2), p)
+      pst_IG_beta <- diag((diag(p) * priors$prior_IG_beta) + (W_k + T3))
       cov <- diag(LaplacesDemon::rinvgamma(p, pst_IG_alpha, pst_IG_beta / G))
-      print(cov)
       for (k in 1:G) {
         T_list[[t]][,,k] <- cov
 
@@ -213,20 +204,16 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
         } else if (n_list[t-1, k] == 0) {
           x_bar_j <- 0
         }
-        print(x_j)
-        print(x_bar_j)
         pst_mean = (n_list[t-1, k]  * x_bar_j + priors$prior_mean[, k]) / (n_list[t-1, k] + 1)
         pst_var =  T_list[[t]][,,k] / (n_list[t-1, k]  + 1)
-        print(pst_mean)
-        print(pst_var)
         if (p > 1) {
           mu_list[[t]][,k] = mvtnorm::rmvnorm(1, mean = pst_mean, sigma = pst_var)
         } else {
           mu_list[[t]][,k] = rnorm(1, mean = pst_mean, sd = sqrt(pst_var))
         }
-        print("end")
+
       }
-      print("Exiting loop")
+
     } else if (model_type == "Equal Spherical") {
       T2 <- 0
       T3 <- 0
@@ -446,7 +433,6 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
     }
 
     # Calculate cluster probabilities -----------------------------------------
-    print("Calculating cluster probs")
     for (a in 1:n) {
       denom = 0
       for (w in 1:G) {
@@ -455,26 +441,21 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
                            mean = mu_list[[t]][, w, drop = FALSE],
                            sigma = matrix(T_list[[t]][,,w, drop = FALSE], ncol = p, nrow = p)))
       }
-      print("Successful denom")
       for (k in 1:G) {
         z_list[[t]][a, k] = eps_list[t, k] *
           mvtnorm::dmvnorm(X_list[[t]][a, , drop = FALSE],
                            mean = mu_list[[t]][, k, drop = FALSE],
                            sigma = matrix(T_list[[t]][,,k, drop = FALSE], ncol = p, nrow = p)) / denom
       }
-      print("Successful z_list calcs")
     }
 
 
     # Cluster assignment ------------------------------------------------------
-    print("Clust calcuation")
     clust <- apply(z_list[[t]], 1, which.max)
     for (k in 1:G) {
       n_list[t, k] <- sum(clust == k)
     }
     class_list[t, ] <- clust
-    print("Class calculation")
-
 
     # Relabeling procedure ----------------------------------------------------
 
@@ -581,7 +562,7 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
           ((1 / (labelswitch_iter+r)) * ((T_list[[labelswitch_iter+r]][,, comp] - init_theta[[comp]][[3]])^2))
       }
     }
-    print("Down here")
+
     # Transform X using Procrustean Similarity Transformation -----------------
 
     ## The following code uses the notation used in the main paper
@@ -593,7 +574,6 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
     mat_T = svd_C$v %*% t(svd_C$u)
     little_t = (1/n) * (t(X_star - X_list[[t]] %*% mat_T) %*% vec_1)
     X_list[[t]] = (X_list[[t]] %*% mat_T) + (vec_1 %*% t(little_t))
-    print("Finished transforming")
   }
 
   # Discard burn-in ---------------------------------------------------------
