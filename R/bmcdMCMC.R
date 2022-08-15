@@ -213,12 +213,12 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
         } else if (n_list[t-1, k] == 0) {
           x_bar_j <- 0
         }
-        print(paste("x_j", x_j))
-        print(paste("x_bar_j", x_bar_j))
+        print(x_j)
+        print(x_bar_j)
         pst_mean = (n_list[t-1, k]  * x_bar_j + priors$prior_mean[, k]) / (n_list[t-1, k] + 1)
         pst_var =  T_list[[t]][,,k] / (n_list[t-1, k]  + 1)
-        print(paste("pst_mean", pst_mean))
-        print(paste("pst_var", pst_var))
+        print(pst_mean)
+        print(pst_var)
         if (p > 1) {
           mu_list[[t]][,k] = mvtnorm::rmvnorm(1, mean = pst_mean, sigma = pst_var)
         } else {
@@ -226,6 +226,7 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
         }
         print("end")
       }
+      print("Exiting loop")
     } else if (model_type == "Equal Spherical") {
       T2 <- 0
       T3 <- 0
@@ -445,7 +446,7 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
     }
 
     # Calculate cluster probabilities -----------------------------------------
-
+    print("Calculating cluster probs")
     for (a in 1:n) {
       denom = 0
       for (w in 1:G) {
@@ -454,12 +455,14 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
                            mean = mu_list[[t]][, w, drop = FALSE],
                            sigma = matrix(T_list[[t]][,,w, drop = FALSE], ncol = p, nrow = p)))
       }
+      print("Successful denom")
       for (k in 1:G) {
         z_list[[t]][a, k] = eps_list[t, k] *
           mvtnorm::dmvnorm(X_list[[t]][a, , drop = FALSE],
                            mean = mu_list[[t]][, k, drop = FALSE],
                            sigma = matrix(T_list[[t]][,,k, drop = FALSE], ncol = p, nrow = p)) / denom
       }
+      print("Successful z_list calcs")
     }
 
 
