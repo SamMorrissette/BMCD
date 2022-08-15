@@ -467,13 +467,13 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
 
 
     # Cluster assignment ------------------------------------------------------
-
+    print("Clust calcuation")
     clust <- apply(z_list[[t]], 1, which.max)
     for (k in 1:G) {
       n_list[t, k] <- sum(clust == k)
     }
     class_list[t, ] <- clust
-
+    print("Class calculation")
 
 
     # Relabeling procedure ----------------------------------------------------
@@ -581,7 +581,7 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
           ((1 / (labelswitch_iter+r)) * ((T_list[[labelswitch_iter+r]][,, comp] - init_theta[[comp]][[3]])^2))
       }
     }
-
+    print("Down here")
     # Transform X using Procrustean Similarity Transformation -----------------
 
     ## The following code uses the notation used in the main paper
@@ -593,6 +593,7 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
     mat_T = svd_C$v %*% t(svd_C$u)
     little_t = (1/n) * (t(X_star - X_list[[t]] %*% mat_T) %*% vec_1)
     X_list[[t]] = (X_list[[t]] %*% mat_T) + (vec_1 %*% t(little_t))
+    print("Finished transforming")
   }
 
   # Discard burn-in ---------------------------------------------------------
