@@ -40,7 +40,7 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
     }
 
     # Generating X using random walk M-H algorithm ----------------------------
-
+    print("1")
     for (i in 1:n) {
       j <- class_list[t-1, i]
 
@@ -87,7 +87,7 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
         X_list[[t]][i, ] <- x_old
       }
     }
-
+    print("2")
 
     # Generate sigma_sq -------------------------------------------------------
 
@@ -99,7 +99,7 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
     while (sigma_sq_new < 0) {
       sigma_sq_new <- rnorm(1, mean = sigma_sq_old, sd = sqrt(sigma_prop_variance)) # Restricted to be positive
     }
-
+    print("3")
 
     ## Third term
     norm_old <- delta / sqrt(sigma_sq_old)
@@ -116,12 +116,12 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
     } else {
       sigma_sq_list[t] <- sigma_sq_old
     }
-
+    print("4")
 
     # Generate epsilon --------------------------------------------------------
 
     eps_list[t, ] <- gtools::rdirichlet(1, n_list[t-1,] + 1)
-
+    print("5")
     # Generate mu and T for each component ------------------------------------
     if (model_type == "Unequal Diagonal") {
       for (k in 1:G) {
