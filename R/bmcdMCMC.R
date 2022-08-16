@@ -127,26 +127,28 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
         if (n_list[t-1, k] > 0) {
           x_j <- X_list[[t]][which(class_list[t-1, ] == k), ]
           x_j <- matrix(x_j, nrow = n_list[t-1, k])
-
-          if (n_list[t-1, k] > 1) {
-            x_bar_j <- matrix(colMeans(x_j), nrow = 1)
-          } else if (n_list[t-1, k] == 1) {
-            x_bar_j <- matrix(x_j, nrow = 1)
-          }
-
-          centered_x <- sweep(x_j, 2, x_bar_j)
-          for (q in 1:nrow(centered_x)) {
-            W_k <- W_k + (centered_x[q, ] %*% t(centered_x[q,]))
-          }
         } else {
-          x_bar_j <- matrix(0, ncol = p)
-          x_j <- matrix(0)
+          x_j <- matrix(0, ncol = p)
         }
 
-        T3 <- ((n_list[t-1, k] / (n_list[t-1, k] + 1)) * (t(x_bar_j) %*% x_bar_j))
+        if (n_list[t-1, k] > 1) {
+          x_bar_j <- colMeans(x_j)
+        } else if (n_list[t-1, k] == 1) {
+          x_bar_j <- c(x_j)
+        } else if (n_list[t-1, k] == 0) {
+          x_bar_j <- rep(0,p)
+        }
 
+        centered_x <- sweep(x_j, 2, x_bar_j)
+        for (q in 1:nrow(centered_x)) {
+          W_k <- W_k + (centered_x[q, ] %*% t(centered_x[q,]))
+        }
+
+        T3 <- ((n_list[t-1, k] / (n_list[t-1, k] + 1)) * (x_bar_j %*% t(x_bar_j)))
+
+        #pst_IG_alpha <- rep(priors$prior_IG_alpha + (n_list[t-1, k] + (G*p) / 2), p)
         pst_IG_alpha <- rep(priors$prior_IG_alpha + (n_list[t-1, k] / 2), p)
-        pst_IG_beta <- diag((diag(p) * priors$prior_IG_beta) + W_k + T3)
+        pst_IG_beta <- diag((diag(p) * priors$prior_IG_beta) + (W_k + T3)/2)
 
         T_list[[t]][,,k] <- diag(LaplacesDemon::rinvgamma(p, pst_IG_alpha, pst_IG_beta))
 
@@ -160,32 +162,33 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
         }
       }
     } else if (model_type == "Equal Diagonal") {
-      T3 <- W_k <- matrix(0, ncol = p, nrow = p)
+      W_k <- T3 <- matrix(0, ncol = p, nrow = p)
       for (k in 1:G) {
         if (n_list[t-1, k] > 0) {
           x_j <- X_list[[t]][which(class_list[t-1, ] == k), ]
           x_j <- matrix(x_j, nrow = n_list[t-1, k])
-
-          if (n_list[t-1, k] > 1) {
-            x_bar_j <- matrix(colMeans(x_j), nrow = 1)
-          } else if (n_list[t-1, k] == 1) {
-            x_bar_j <- matrix(x_j, nrow = 1)
-          }
-
-          centered_x <- sweep(x_j, 2, x_bar_j)
-          for (q in 1:nrow(centered_x)) {
-            W_k <- W_k + (centered_x[q, ] %*% t(centered_x[q,]))
-          }
         } else {
-          x_bar_j <- matrix(0, ncol = p)
-          x_j <- matrix(0)
+          x_j <- matrix(0, ncol = p)
         }
 
-        T3 <- T3 + ((n_list[t-1, k] / (n_list[t-1, k] + 1)) * (t(x_bar_j) %*% x_bar_j))
+        if (n_list[t-1, k] > 1) {
+          x_bar_j <- colMeans(x_j)
+        } else if (n_list[t-1, k] == 1) {
+          x_bar_j <- c(x_j)
+        } else if (n_list[t-1, k] == 0) {
+          x_bar_j <- rep(0, p)
+        }
+
+        centered_x <- sweep(x_j, 2, x_bar_j)
+        for (q in 1:nrow(centered_x)) {
+          W_k <- W_k + (centered_x[q, ] %*% t(centered_x[q,]))
+        }
+
+        T3 <- T3 + ((n_list[t-1, k] / (n_list[t-1, k] + 1)) * (x_bar_j %*% t(x_bar_j)))
       }
-      pst_IG_alpha <- rep(priors$prior_IG_alpha + (n / 2), p)
-      pst_IG_beta <- diag((diag(p) * priors$prior_IG_beta) + (W_k + T3))
-      cov <- diag(LaplacesDemon::rinvgamma(p, pst_IG_alpha, pst_IG_beta / G))
+      pst_IG_alpha <- rep(priors$prior_IG_alpha + ((n + G*(p+1) - 2) / 2), p)
+      pst_IG_beta <- diag((diag(p) * priors$prior_IG_beta) + (W_k + T3)/2)
+      cov <- diag(LaplacesDemon::rinvgamma(p, pst_IG_alpha, pst_IG_beta))
       for (k in 1:G) {
         T_list[[t]][,,k] <- cov
 
@@ -193,7 +196,7 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
           x_j <- X_list[[t]][which(class_list[t-1, ] == k), ]
           x_j <- matrix(x_j, nrow = n_list[t-1, k])
         } else {
-          x_j <- matrix(0)
+          x_j <- matrix(0, ncol = p)
         }
 
         #Generating mu
@@ -202,7 +205,7 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
         } else if (n_list[t-1, k] == 1) {
           x_bar_j <- x_j
         } else if (n_list[t-1, k] == 0) {
-          x_bar_j <- 0
+          x_bar_j <- rep(0, p)
         }
         pst_mean = (n_list[t-1, k]  * x_bar_j + priors$prior_mean[, k]) / (n_list[t-1, k] + 1)
         pst_var =  T_list[[t]][,,k] / (n_list[t-1, k]  + 1)
@@ -215,14 +218,14 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
       }
 
     } else if (model_type == "Equal Spherical") {
-      T2 <- 0
+      W_k <- 0
       T3 <- 0
       for (k in 1:G) {
         if (n_list[t-1, k] > 0) {
           x_j <- X_list[[t]][which(class_list[t-1, ] == k), ]
           x_j <- matrix(x_j, nrow = n_list[t-1, k])
         } else {
-          x_j <- matrix(0)
+          x_j <- matrix(0, ncol = p)
         }
 
         if (n_list[t-1, k] > 1) {
@@ -230,25 +233,26 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
         } else if (n_list[t-1, k] == 1) {
           x_bar_j <- c(x_j)
         } else if (n_list[t-1, k] == 0) {
-          x_bar_j <- 0
+          x_bar_j <- rep(0, p)
         }
         centered_x <- sweep(x_j, 2, x_bar_j)
-        #centered_x <- sweep(X_list[[t]], 2, colMeans(X_list[[t]]))
-        T2 <- T2 + sum(diag(centered_x %*% t(centered_x)))
+        for (q in 1:nrow(centered_x)) {
+          W_k <- W_k + sum(diag(centered_x[q,] %*% t(centered_x[q,])))
+        }
         T3 <- T3 + ((n_list[t-1, k] / (n_list[t-1, k] + 1)) * (t(x_bar_j) %*% x_bar_j))
       }
-      pst_IG_alpha <- (n + priors$prior_IG_alpha) / 2
-      pst_IG_beta <- (priors$prior_IG_beta + T2 + T3) / 2
+      pst_IG_alpha <- priors$prior_IG_alpha + (n / 2)
+      pst_IG_beta <- priors$prior_IG_beta + (W_k + T3) / 2
       # print(paste(T2, T3))
       # print(paste(pst_IG_alpha, pst_IG_beta))
-      lambda <- LaplacesDemon::rinvgamma(1, pst_IG_alpha, pst_IG_beta / G)  # Not sure but I think this is correct!!!!
+      lambda <- LaplacesDemon::rinvgamma(1, pst_IG_alpha, pst_IG_beta)  # Not sure but I think this is correct!!!!
       for (k in 1:G) {
         T_list[[t]][,,k] <- diag(rep(lambda, p))
         if (n_list[t-1, k] > 0) {
           x_j <- X_list[[t]][which(class_list[t-1, ] == k), ]
           x_j <- matrix(x_j, nrow = n_list[t-1, k])
         } else {
-          x_j <- matrix(0)
+          x_j <- matrix(0, ncol = p)
         }
 
         #Generating mu
@@ -257,7 +261,7 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
         } else if (n_list[t-1, k] == 1) {
           x_bar_j <- x_j
         } else if (n_list[t-1, k] == 0) {
-          x_bar_j <- 0
+          x_bar_j <- rep(0, p)
         }
 
         pst_mean = (n_list[t-1, k]  * x_bar_j + priors$prior_mean[, k]) / (n_list[t-1, k] + 1)
@@ -275,7 +279,7 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
           x_j <- X_list[[t]][which(class_list[t-1, ] == k), ]
           x_j <- matrix(x_j, nrow = n_list[t-1, k])
         } else {
-          x_j <- matrix(0)
+          x_j <- matrix(0, ncol = p)
         }
 
         #Generating mu
@@ -284,13 +288,17 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
         } else if (n_list[t-1, k] == 1) {
           x_bar_j <- x_j
         } else if (n_list[t-1, k] == 0) {
-          x_bar_j <- 0
+          x_bar_j <- rep(0, p)
         }
         centered_x <- sweep(x_j, 2, x_bar_j)
-        T2 <- sum(diag(centered_x %*% t(centered_x)))
+        W_k <- 0
+        for (q in 1:nrow(centered_x)) {
+          W_k <- W_k + sum(diag(centered_x[q,] %*% t(centered_x[q,])))
+        }
+
         T3 <- ((n_list[t-1, k] / (n_list[t-1, k] + 1)) * (t(x_bar_j) %*% x_bar_j))
-        pst_IG_alpha <- (priors$prior_IG_alpha + (n_list[t-1,k] * p)) / 2
-        pst_IG_beta <- (priors$prior_IG_beta + T2 + T3) / 2
+        pst_IG_alpha <- priors$prior_IG_alpha + ((n_list[t-1,k] * p) / 2)
+        pst_IG_beta <- priors$prior_IG_beta + ((W_k + T3) / 2)
         lambda_k <- LaplacesDemon::rinvgamma(1, pst_IG_alpha, pst_IG_beta)
         T_list[[t]][,,k] <- diag(rep(lambda_k, p))
 
@@ -311,28 +319,29 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
         if (n_list[t-1, k] > 0) {
           x_j <- X_list[[t]][which(class_list[t-1, ] == k), ]
           x_j <- matrix(x_j, nrow = n_list[t-1, k])
-
-          if (n_list[t-1, k] > 1) {
-            x_bar_j <- matrix(colMeans(x_j), nrow = 1)
-          } else if (n_list[t-1, k] == 1) {
-            x_bar_j <- matrix(x_j, nrow = 1)
-          }
-
-          centered_x <- sweep(x_j, 2, x_bar_j)
-          #diag(p) * diag((centered_x %*% t(centered_x)))
-          for (q in 1:nrow(centered_x)) {
-            W_k <- W_k + (centered_x[q, ] %*% t(centered_x[q,]))
-          }
-
         } else {
-          x_bar_j <- matrix(0, ncol = p)
-          x_j <- matrix(0)
+          x_j <- matrix(0, ncol = p)
         }
 
-        T3 <- ((n_list[t-1, k] / (n_list[t-1, k] + 1)) * (t(x_bar_j) %*% x_bar_j))
+        if (n_list[t-1, k] > 1) {
+          x_bar_j <- colMeans(x_j)
+        } else if (n_list[t-1, k] == 1) {
+          x_bar_j <- c(x_j)
+        } else if (n_list[t-1, k] == 0) {
+          x_bar_j <- rep(0, p)
+        }
+
+        centered_x <- sweep(x_j, 2, x_bar_j)
+
+        for (q in 1:nrow(centered_x)) {
+          W_k <- W_k + (centered_x[q, ] %*% t(centered_x[q,]))
+        }
+
+        T3 <- ((n_list[t-1, k] / (n_list[t-1, k] + 1)) * (x_bar_j %*% t(x_bar_j)))
         T_list_pst <- priors$prior_Bj[,,k] + W_k + T3
 
         T_list[[t]][,,k] <- LaplacesDemon::rinvwishart(priors$prior_alpha + (n_list[t-1, k]), T_list_pst)
+
         #T_list_pst <- as.matrix(priors$prior_Bj[,,k] + (S_j))
 
         # tryCatch({
@@ -353,7 +362,7 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
       # } else if (n_list[t-1, k] == 1) {
       #   x_bar_j <- x_j
       # } else if (n_list[t-1, k] == 0) {
-      #   x_bar_j <- 0
+      #   x_bar_j <- rep(0, p)
       # }
 
       pst_mean = (n_list[t-1, k]  * x_bar_j + priors$prior_mean[, k]) / (n_list[t-1, k] + 1)
@@ -371,28 +380,29 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
         if (n_list[t-1, k] > 0) {
           x_j <- X_list[[t]][which(class_list[t-1, ] == k), ]
           x_j <- matrix(x_j, nrow = n_list[t-1, k])
-
-          if (n_list[t-1, k] > 1) {
-            x_bar_j <- matrix(colMeans(x_j), nrow = 1)
-          } else if (n_list[t-1, k] == 1) {
-            x_bar_j <- matrix(x_j, nrow = 1)
-          }
-
-          centered_x <- sweep(x_j, 2, x_bar_j)
-
-          for (q in 1:nrow(centered_x)) {
-            W_k <- W_k + (centered_x[q, ] %*% t(centered_x[q,]))
-          }
         } else {
-          x_bar_j <- matrix(0, ncol = p)
-          x_j <- matrix(0)
+          x_j <- matrix(0, ncol = p)
         }
 
-        T3 <- T3 + ((n_list[t-1, k] / (n_list[t-1, k] + 1)) * (t(x_bar_j) %*% x_bar_j))
+        if (n_list[t-1, k] > 1) {
+          x_bar_j <- colMeans(x_j)
+        } else if (n_list[t-1, k] == 1) {
+          x_bar_j <- c(x_j)
+        } else if (n_list[t-1, k] == 0) {
+          x_bar_j <- rep(0, p)
+        }
+
+        centered_x <- sweep(x_j, 2, x_bar_j)
+
+        for (q in 1:nrow(centered_x)) {
+          W_k <- W_k + (centered_x[q,] %*% t(centered_x[q,]))
+        }
+
+        T3 <- T3 + ((n_list[t-1, k] / (n_list[t-1, k] + 1)) * (x_bar_j %*% t(x_bar_j)))
       }
 
       T_list_pst <- (priors$prior_Bj[,,1] + W_k + T3)
-      cov <- LaplacesDemon::rinvwishart(priors$prior_alpha + n, T_list_pst / G)
+      cov <- LaplacesDemon::rinvwishart(priors$prior_alpha + n, T_list_pst)
 
       for (k in 1:G) {
         T_list[[t]][,,k] <- cov
@@ -400,7 +410,7 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
           x_j <- X_list[[t]][which(class_list[t-1, ] == k), ]
           x_j <- matrix(x_j, nrow = n_list[t-1, k])
         } else {
-          x_j <- matrix(0)
+          x_j <- matrix(0, ncol = p)
         }
 
         #Generating mu
@@ -409,7 +419,7 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
         } else if (n_list[t-1, k] == 1) {
           x_bar_j <- x_j
         } else if (n_list[t-1, k] == 0) {
-          x_bar_j <- 0
+          x_bar_j <- rep(0, p)
         }
 
         pst_mean = (n_list[t-1, k]  * x_bar_j + priors$prior_mean[, k]) / (n_list[t-1, k] + 1)
