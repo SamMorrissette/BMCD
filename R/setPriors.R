@@ -18,15 +18,15 @@ setPriors <- function(distances, X_est, mclust_result, p, G, n, m, model_type) {
     prior_Bj <- array(NA, c(p,p,G))
     for (i in 1:G) {
       prior_mean[,i] <- colMeans(X_est)
-      prior_Bj[,,i] <- ((prior_alpha - p - 1) * cov(X_est)) / G #Changed the prior here
+      prior_Bj[,,i] <- ((prior_alpha - p - 1) * cov(X_est)) #/ G #Changed the prior here
     }
     out <- list(prior_shape = prior_shape, prior_scale = prior_scale,
                 prior_mean = prior_mean,
                 prior_alpha = prior_alpha, prior_Bj = prior_Bj)
   } else if (model_type == "Unequal Diagonal" || model_type == "Equal Diagonal") {
     prior_mean <- matrix(NA, nrow = p, ncol = G)
-    prior_IG_alpha <- 1
-    prior_IG_beta <- 1
+    prior_IG_alpha <- 5 / 2
+    prior_IG_beta <- eigen(cov(X_est))$values[1] / 2
     for (i in 1:G) {
       prior_mean[,i] <- colMeans(X_est)
     }
@@ -35,8 +35,8 @@ setPriors <- function(distances, X_est, mclust_result, p, G, n, m, model_type) {
                 prior_IG_alpha = prior_IG_alpha, prior_IG_beta = prior_IG_beta)
   } else if (model_type == "Equal Spherical" || model_type == "Unequal Spherical") {
     prior_mean <- matrix(NA, nrow = p, ncol = G)
-    prior_IG_alpha <- 1
-    prior_IG_beta <- 1
+    prior_IG_alpha <- 5 / 2
+    prior_IG_beta <- eigen(cov(X_est))$values[1] / 2
     for (i in 1:G) {
       prior_mean[,i] <- colMeans(X_est)
     }
