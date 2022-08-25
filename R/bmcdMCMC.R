@@ -218,7 +218,7 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
       }
 
     } else if (model_type == "Equal Spherical") {
-      W_k <- 0
+      W_k <- matrix(0, ncol = p, nrow = p)
       T3 <- 0
       for (k in 1:G) {
         if (n_list[t-1, k] > 0) {
@@ -235,14 +235,17 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
         } else if (n_list[t-1, k] == 0) {
           x_bar_j <- rep(0, p)
         }
+
         centered_x <- sweep(x_j, 2, x_bar_j)
         for (q in 1:nrow(centered_x)) {
-          W_k <- W_k + sum(diag(centered_x[q,] %*% t(centered_x[q,])))
+          W_k <- W_k + (centered_x[q, ] %*% t(centered_x[q,]))
         }
+
         T3 <- T3 + ((n_list[t-1, k] / (n_list[t-1, k] + 1)) * (t(x_bar_j) %*% x_bar_j))
       }
-      pst_IG_alpha <- priors$prior_IG_alpha + (n / 2)
-      pst_IG_beta <- priors$prior_IG_beta + (W_k + T3) / 2
+      T2 <- sum(diag(W_k))
+      pst_IG_alpha <- priors$prior_IG_alpha + ((n*p + p) / 2)
+      pst_IG_beta <- priors$prior_IG_beta + (T2 + T3) / 2
 
       lambda <- LaplacesDemon::rinvgamma(1, pst_IG_alpha, pst_IG_beta)  # Not sure but I think this is correct!!!!
 
