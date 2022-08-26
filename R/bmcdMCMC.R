@@ -245,7 +245,7 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
         T3 <- T3 + ((n_list[t-1, k] / (n_list[t-1, k] + 1)) * (t(x_bar_j) %*% x_bar_j))
       }
       T2 <- sum(diag(W_k))
-      pst_IG_alpha <- priors$prior_IG_alpha + ((n*p + p) / 2)
+      pst_IG_alpha <- priors$prior_IG_alpha + (n*p / 2)
       pst_IG_beta <- priors$prior_IG_beta + (T2 + T3) / 2
 
       lambda <- LaplacesDemon::rinvgamma(1, pst_IG_alpha, pst_IG_beta)  # Not sure but I think this is correct!!!!
