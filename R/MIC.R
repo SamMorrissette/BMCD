@@ -111,10 +111,10 @@ MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G, parallel
       D_theta_bar <- -2 * sum(log(xs))
       p_d <- mean(D) - D_theta_bar
       DIC <- D_theta_bar + (2*p_d)
-      print(paste(index, DIC))
+     # print(paste(index, DIC))
 
 
-      print(which.min(aics_iter))
+      #print(which.min(aics_iter))
       aics[index] <- min(aics_iter)
       bics[index] <- min(bics_iter)
       optim_params[[index]] <- list(X = mcmc$X_list[[which.min(aics_iter)]],
@@ -157,7 +157,6 @@ MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G, parallel
                                    } else if (model_type == "Equal Spherical")  {
                                      num_params <- nu + 1
                                    }
-
 
                                    aics_iter <- rep(NA, nrow(mcmc$eps_list))
                                    bics_iter <- rep(NA, nrow(mcmc$eps_list))
