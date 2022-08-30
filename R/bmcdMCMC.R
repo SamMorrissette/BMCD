@@ -466,11 +466,18 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
 
 
     # Cluster assignment ------------------------------------------------------
-    clust <- apply(z_list[[t]], 1, which.max)
+
+    # clust <- apply(z_list[[t]], 1, which.max)
+    # for (k in 1:G) {
+    #   n_list[t, k] <- sum(clust == k)
+    # }
+    # class_list[t, ] <- clust
+    class_list[t, ] <- apply(z_list[[t]], 1, function(x) {
+      sample(1:G, 1, replace = TRUE, prob = x)
+    })
     for (k in 1:G) {
-      n_list[t, k] <- sum(clust == k)
+      n_list[t, k] <- sum(class_list[t, ] == k)
     }
-    class_list[t, ] <- clust
 
     # Relabeling procedure ----------------------------------------------------
 
