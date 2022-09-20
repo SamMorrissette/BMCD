@@ -117,11 +117,11 @@ MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G, parallel
       #print(which.min(aics_iter))
       aics[index] <- min(aics_iter)
       bics[index] <- min(bics_iter)
-      optim_params[[index]] <- list(X = mcmc$X_list[[which.min(aics_iter)]],
-                                    eps = mcmc$eps_list[which.min(aics_iter), ],
-                                  mu = mcmc$mu_list[[which.min(aics_iter)]],
-                                  S = mcmc$T_list[[which.min(aics_iter)]],
-                                  z = mcmc$z_list[[which.min(aics_iter)]])
+      optim_params[[index]] <- list(X = mcmc$X_list[[which.min(bics_iter)]],
+                                    eps = mcmc$eps_list[which.min(bics_iter), ],
+                                  mu = mcmc$mu_list[[which.min(bics_iter)]],
+                                  S = mcmc$T_list[[which.min(bics_iter)]],
+                                  z = mcmc$z_list[[which.min(bics_iter)]])
       DICs[index] <- DIC
     }
   } else if (parallel == TRUE & num_cores == 0) {
@@ -189,11 +189,11 @@ MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G, parallel
 
                                    aic_G <- min(aics_iter)
                                    bic_G <- min(bics_iter)
-                                   optim_param_G <- list(X = mcmc$X_list[[which.min(aics_iter)]],
-                                                                 eps = mcmc$eps_list[which.min(aics_iter), ],
-                                                                 mu = mcmc$mu_list[[which.min(aics_iter)]],
-                                                                 S = mcmc$T_list[[which.min(aics_iter)]],
-                                                                 z = mcmc$z_list[[which.min(aics_iter)]])
+                                   optim_param_G <- list(X = mcmc$X_list[[which.min(bics_iter)]],
+                                                                 eps = mcmc$eps_list[which.min(bics_iter), ],
+                                                                 mu = mcmc$mu_list[[which.min(bics_iter)]],
+                                                                 S = mcmc$T_list[[which.min(bics_iter)]],
+                                                                 z = mcmc$z_list[[which.min(bics_iter)]])
                                    list(aic_G, optim_param_G, DIC_G, bic_G)
                                  }
     aics <- unlist(out_list[[1]])
