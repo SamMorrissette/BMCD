@@ -88,7 +88,7 @@ MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G, parallel
       for (j in 1:G) {
         lik <- lik + eps_star[j] * dmvnorm(X, mu_star[,j], T_star[,,j])
       }
-
+      print(paste("likelihood:", lik))
       aics <- 2*num_params - (2*sum(log(lik)))
       bics <- (log(n) * num_params) - 2 * (sum(log(lik)))
 
