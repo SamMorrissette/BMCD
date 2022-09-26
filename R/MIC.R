@@ -89,8 +89,8 @@ MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G, parallel
         lik <- lik + eps_star[j] * dmvnorm(X, mu_star[,j], T_star[,,j])
       }
       print(paste("likelihood:", lik))
-      aics <- 2*num_params - (2*sum(log(lik)))
-      bics <- (log(n) * num_params) - 2 * (sum(log(lik)))
+      aics[index] <- 2*num_params - (2*sum(log(lik)))
+      bics[index] <- (log(n) * num_params) - 2 * (sum(log(lik)))
 
       optim_params[[index]] <- list(X = X,
                                     eps = eps_star,
