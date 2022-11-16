@@ -83,11 +83,14 @@ MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G, parallel
       } else if (model_type == "Equal Spherical")  {
         num_params <- nu + 1
       }
+      print(paste("num_params", num_params))
       lik <- 0
 
       for (j in 1:G) {
         lik <- lik + eps_star[j] * dmvnorm(X, mu_star[,j], T_star[,,j])
       }
+      print("a")
+      print(lik)
       print(paste("likelihood:", lik))
       aics[index] <- 2*num_params - (2*sum(log(lik)))
       bics[index] <- (log(n) * num_params) - 2 * (sum(log(lik)))
