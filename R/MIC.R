@@ -83,16 +83,36 @@ MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G, parallel
       } else if (model_type == "Equal Spherical")  {
         num_params <- nu + 1
       }
-      print(paste("num_params", num_params))
+      class <- apply(z_star, 1, which.max)
+
       lik <- 0
 
-      for (j in 1:G) {
-        lik <- lik + eps_star[j] * dmvnorm(X, mu_star[,j], T_star[,,j])
+      for (i in 1:n) {
+        new_dens <- 0
+        for (k in 1:G) {
+          new_dens <- new_dens + eps_star[k]*dmvnorm(X[i,], mu_star[,k],T_star[,,k])
+        }
+        new_dens <- log(new_dens)
+        lik <- lik + new_dens
       }
 
-      print(sum(log(lik)))
-      aics[index] <- 2*num_params - (2*sum(log(lik)))
-      bics[index] <- (log(n) * num_params) - 2 * (sum(log(lik)))
+      vers2_lik <- 0
+      for (j in 1:G) {
+        vers2_lik <- 0 <- vers2_lik <- 0 + eps_star[j] * dmvnorm(X, mu_star[,j], T_star[,,j])
+      }
+
+      print((log(n) * num_params) - 2 * (sum(log(vers2_lik <- 0))))
+
+      # for (j in 1:G) {
+      #   lik <- lik + eps_star[j] * dmvnorm(X, mu_star[,j], T_star[,,j])
+      # }
+
+      # aics[index] <- 2*num_params - (2*sum(log(lik)))
+      # bics[index] <- (log(n) * num_params) - 2 * (sum(log(lik)))
+
+      aics[index] <- 2*num_params - (2*lik)
+      bics[index] <- (log(n) * num_params) - (2*lik)
+      print(bic[index])
 
       optim_params[[index]] <- list(X = X,
                                     eps = eps_star,
