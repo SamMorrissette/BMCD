@@ -98,10 +98,10 @@ MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G, parallel
 
       vers2_lik <- 0
       for (j in 1:G) {
-        vers2_lik <- 0 <- vers2_lik <- 0 + eps_star[j] * dmvnorm(X, mu_star[,j], T_star[,,j])
+        vers2_lik <- vers2_lik + eps_star[j] * dmvnorm(X, mu_star[,j], T_star[,,j])
       }
 
-      print((log(n) * num_params) - 2 * (sum(log(vers2_lik <- 0))))
+      print((log(n) * num_params) - 2 * (sum(log(vers2_lik))))
 
       # for (j in 1:G) {
       #   lik <- lik + eps_star[j] * dmvnorm(X, mu_star[,j], T_star[,,j])
