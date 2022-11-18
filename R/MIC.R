@@ -112,7 +112,7 @@ MIC <- function(distances, X_out, bmcd_MCMC_list, priors, min_G, max_G, parallel
 
       aics[index] <- 2*num_params - (2*lik)
       bics[index] <- (log(n) * num_params) - (2*lik)
-      print(bic[index])
+      print(bics[index])
 
       optim_params[[index]] <- list(X = X,
                                     eps = eps_star,
