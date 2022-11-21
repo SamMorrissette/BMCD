@@ -347,18 +347,18 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
         T3 <- ((n_list[t-1, k] / (n_list[t-1, k] + 1)) * (x_bar_j %*% t(x_bar_j)))
         T_list_pst <- priors$prior_Bj[,,k] + W_k + T3
 
-        T_list[[t]][,,k] <- LaplacesDemon::rinvwishart(priors$prior_alpha + (n_list[t-1, k]), T_list_pst)
+        #T_list[[t]][,,k] <- LaplacesDemon::rinvwishart(priors$prior_alpha + (n_list[t-1, k]), T_list_pst)
 
         #T_list_pst <- as.matrix(priors$prior_Bj[,,k] + (S_j))
 
-        # tryCatch({
-        #   T_list[[t]][,,k] <<- LaplacesDemon::rinvwishart(priors$prior_alpha + (n_list[t-1, k]), T_list_pst)
-        #   print( LaplacesDemon::rinvwishart(priors$prior_alpha + (n_list[t-1, k]), T_list_pst))
-        # }, error = function(e) {
-        #   diag(T_list_pst) <- diag(T_list_pst) + 1e-05
-        #   T_list[[t]][,,k] <<- LaplacesDemon::rinvwishart(priors$prior_alpha + (n_list[t-1, k]), T_list_pst)
-        # }
-        # )
+        tryCatch({
+          T_list[[t]][,,k] <<- LaplacesDemon::rinvwishart(priors$prior_alpha + (n_list[t-1, k]), T_list_pst)
+          print( LaplacesDemon::rinvwishart(priors$prior_alpha + (n_list[t-1, k]), T_list_pst))
+        }, error = function(e) {
+          diag(T_list_pst) <- diag(T_list_pst) + 1e-05
+          T_list[[t]][,,k] <<- LaplacesDemon::rinvwishart(priors$prior_alpha + (n_list[t-1, k]), T_list_pst)
+        }
+        )
 
 
         #T_list[[t]][,,k] <- common_T
