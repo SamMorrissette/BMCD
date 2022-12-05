@@ -22,8 +22,6 @@ bmcd <- function(distances, bmds_object, p, min_G, max_G, bmcd_iter, bmcd_burn, 
 
   out <- priors <- vector("list", length = max_G - min_G + 1)
 
-
-
   if (parallel == FALSE & num_cores == 0) {
     ind <- 1
     for (G in min_G:max_G) {
