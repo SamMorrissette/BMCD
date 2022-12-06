@@ -409,15 +409,15 @@ bmcdMCMC <- function(distances, mcmc_list, priors, p, G, n, m, bmcd_iter, bmcd_b
       }
 
       T_list_pst <- (priors$prior_Bj[,,1] + W_k + T3)
-      tryCatch({
-        cov <<- LaplacesDemon::rinvwishart(priors$prior_alpha + n, T_list_pst)
-        #print( LaplacesDemon::rinvwishart(priors$prior_alpha + (n_list[t-1, k]), T_list_pst))
-        }, error = function(e) {
-        diag(T_list_pst) <- diag(T_list_pst) + 1e-05
-        cov <<- LaplacesDemon::rinvwishart(priors$prior_alpha + n, T_list_pst)
-        }
-      )
-      #cov <- LaplacesDemon::rinvwishart(priors$prior_alpha + n, T_list_pst)
+      # tryCatch({
+      #   cov <<- LaplacesDemon::rinvwishart(priors$prior_alpha + n, T_list_pst)
+      #   #print( LaplacesDemon::rinvwishart(priors$prior_alpha + (n_list[t-1, k]), T_list_pst))
+      #   }, error = function(e) {
+      #   diag(T_list_pst) <- diag(T_list_pst) + 1e-05
+      #   cov <<- LaplacesDemon::rinvwishart(priors$prior_alpha + n, T_list_pst)
+      #   }
+      # )
+      cov <- LaplacesDemon::rinvwishart(priors$prior_alpha + n, T_list_pst)
 
       for (k in 1:G) {
         T_list[[t]][,,k] <- cov
